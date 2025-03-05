@@ -409,6 +409,10 @@ func (c *ClusterResourceSet) addResourcesForControlPlane(subnetDetails *SubnetDe
 		}
 	}
 
+	_, err := AddBetaResources(c.rs.template, &cluster)
+	if err != nil {
+		return fmt.Errorf("unable to add beta resources: %w", err)
+	}
 	c.newResource("ControlPlane", &cluster)
 
 	if c.spec.Status == nil {
