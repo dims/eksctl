@@ -3,6 +3,7 @@ import json
 import boto3
 import os
 import logging
+import time
 import cfnresponse  # AWS-provided helper for sending responses
 
 # Set up logging
@@ -57,6 +58,18 @@ def replace_boolean_strings(d):
             elif isinstance(v, (dict, list)):
                 replace_boolean_strings(v)
 
+def wait_for_cluster_creation(eks_client, cluster_name):
+    while True:
+        response = eks_client.describe_cluster(name=cluster_name)
+        status = response['cluster']['status']
+        if status == 'ACTIVE':
+            logger.info(f"EKS cluster {cluster_name} is now ACTIVE.")
+            return response['cluster']
+        elif status == 'FAILED':
+            raise Exception(f"EKS cluster {cluster_name} creation failed.")
+        else:
+            logger.info(f"EKS cluster {cluster_name} status: {status}. Waiting...")
+            time.sleep(10)  # Wait 10 seconds before polling again
 
 def handler(event, context):
     try:
@@ -93,10 +106,19 @@ def handler(event, context):
         response = eks_client.create_cluster(**create_cluster_payload)
         logger.info("EKS cluster created: " + json.dumps(response, default=str))
 
+        # Wait for the cluster to become ACTIVE
+        cluster_name = response['cluster']['name']
+        cluster_details = wait_for_cluster_creation(eks_client, cluster_name)
+
+        # Extract required attributes
         eventData = {
-            "PhysicalResourceId": response['cluster']['arn'],
-            "ClusterName": response['cluster']['name'],
+            "PhysicalResourceId": cluster_details['arn'],
+            "ClusterName": cluster_details['name'],
+            "ClusterSecurityGroupId": cluster_details['resourcesVpcConfig']['clusterSecurityGroupId'],
+            "CertificateAuthorityData": cluster_details['certificateAuthority']['data'],
+            "Endpoint": cluster_details['endpoint'],
         }
+
         cfnresponse.send(event, context, cfnresponse.SUCCESS,
                          eventData)
         # Return the cluster ARN as the PhysicalResourceId
