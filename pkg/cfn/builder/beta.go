@@ -32,8 +32,54 @@ func AddBetaResources(clusterTemplate *gfn.Template, g *gfneks.Cluster) (BetaRes
 		clusterTemplate.Outputs[key] = output
 	}
 	customResource := clusterTemplate.Resources["CustomEKSCluster"].(*gfn.CustomResource)
-	customResource.Properties["ResourcesVpcConfig"] = g.ResourcesVpcConfig
-	customResource.Properties["Version"] = g.Version
+	if g.AccessConfig != nil {
+		customResource.Properties["AccessConfig"] = g.AccessConfig
+	}
+	if g.BootstrapSelfManagedAddons != nil {
+		customResource.Properties["BootstrapSelfManagedAddons"] = g.BootstrapSelfManagedAddons
+	}
+	if g.ComputeConfig != nil {
+		customResource.Properties["ComputeConfig"] = g.ComputeConfig
+	}
+	if g.EncryptionConfig != nil {
+		customResource.Properties["EncryptionConfig"] = g.EncryptionConfig
+	}
+	if g.KubernetesNetworkConfig != nil {
+		customResource.Properties["KubernetesNetworkConfig"] = g.KubernetesNetworkConfig
+	}
+	if g.Logging != nil {
+		customResource.Properties["Logging"] = g.Logging
+	}
+	if g.Name != nil {
+		customResource.Properties["Name"] = g.Name
+	}
+	if g.OutpostConfig != nil {
+		customResource.Properties["OutpostConfig"] = g.OutpostConfig
+	}
+	if g.RemoteNetworkConfig != nil {
+		customResource.Properties["RemoteNetworkConfig"] = g.RemoteNetworkConfig
+	}
+	if g.ResourcesVpcConfig != nil {
+		customResource.Properties["ResourcesVpcConfig"] = g.ResourcesVpcConfig
+	}
+	if g.RoleArn != nil {
+		customResource.Properties["RoleArn"] = g.RoleArn
+	}
+	if g.StorageConfig != nil {
+		customResource.Properties["StorageConfig"] = g.StorageConfig
+	}
+	if g.Tags != nil {
+		customResource.Properties["Tags"] = g.Tags
+	}
+	if g.UpgradePolicy != nil {
+		customResource.Properties["UpgradePolicy"] = g.UpgradePolicy
+	}
+	if g.Version != nil {
+		customResource.Properties["Version"] = g.Version
+	}
+	if g.ZonalShiftConfig != nil {
+		customResource.Properties["ZonalShiftConfig"] = g.ZonalShiftConfig
+	}
 
 	customFunction := clusterTemplate.Resources["CustomEKSFunction"].(*lambda.Function)
 	customFunction.Code = &lambda.Function_Code{

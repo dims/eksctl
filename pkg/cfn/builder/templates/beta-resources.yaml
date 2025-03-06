@@ -6,7 +6,6 @@ Resources:
     Type: Custom::MyEKSResource
     Properties:
       ServiceToken: !GetAtt CustomEKSFunction.Arn
-      ClusterName: !Sub '${AWS::StackName}-eks-cluster-${AWS::Region}-002'
       RoleArn: !GetAtt ServiceRole.Arn
 
   CustomEKSFunction:
@@ -68,4 +67,4 @@ Outputs:
     Value: !GetAtt CustomEKSCluster.PhysicalResourceId
   ClusterName:
     Description: Name of the created EKS cluster
-    Value: !Sub '${AWS::StackName}-eks-cluster-${AWS::Region}'
+    Value: !GetAtt CustomEKSCluster.ClusterName
