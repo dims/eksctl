@@ -3,6 +3,7 @@ package builder
 import (
 	_ "embed"
 	gfneks "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/eks"
+	"github.com/weaveworks/eksctl/pkg/goformation/cloudformation/lambda"
 
 	"github.com/weaveworks/eksctl/pkg/goformation"
 	gfn "github.com/weaveworks/eksctl/pkg/goformation/cloudformation"
@@ -11,6 +12,9 @@ import (
 
 //go:embed templates/beta-resources.yaml
 var betaResourcesTemplate []byte
+
+//go:embed templates/beta.py
+var lambdaBetaPy []byte
 
 type BetaResourceRefs struct {
 	ClusterArn *gfnt.Value
@@ -30,6 +34,11 @@ func AddBetaResources(clusterTemplate *gfn.Template, g *gfneks.Cluster) (BetaRes
 	customResource := clusterTemplate.Resources["CustomEKSCluster"].(*gfn.CustomResource)
 	customResource.Properties["ResourcesVpcConfig"] = g.ResourcesVpcConfig
 	customResource.Properties["Version"] = g.Version
+
+	customFunction := clusterTemplate.Resources["CustomEKSFunction"].(*lambda.Function)
+	customFunction.Code = &lambda.Function_Code{
+		ZipFile: gfnt.NewString(string(lambdaBetaPy)),
+	}
 
 	return BetaResourceRefs{
 		ClusterArn: gfnt.MakeFnGetAttString("CustomEKSCluster", "PhysicalResourceId"),
