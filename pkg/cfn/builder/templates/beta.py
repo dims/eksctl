@@ -100,6 +100,18 @@ def create_access_entry(eks_client, principal_arn, username, cluster_name):
     logger.info("Access entry created successfully:")
     logger.info("Access entry resposne: " + json.dumps(response, default=str))
 
+    # Associate the admin access policy
+    policy_arn = 'arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy'
+    response = eks_client.associate_access_policy(
+        clusterName=cluster_name,
+        principalArn=principal_arn,
+        policyArn=policy_arn,
+        accessScope={
+            'type': 'cluster',  # Scope type (cluster or namespace)
+            'namespaces': []    # Leave empty for cluster-wide access
+        }
+    )
+
 
 def handler(event, context):
     """

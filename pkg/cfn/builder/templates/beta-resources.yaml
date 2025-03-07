@@ -38,6 +38,7 @@ Resources:
                   - eks:DescribeCluster
                   - eks:DeleteCluster
                   - eks:CreateAccessEntry
+                  - eks:AssociateAccessPolicy
                 Resource: '*'
               - Effect: Allow
                 Action: iam:PassRole

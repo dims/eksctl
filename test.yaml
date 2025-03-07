@@ -2,7 +2,7 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: my-eks-beta-18
+  name: my-eks-beta-20
   region: us-west-2
 
 iam:
