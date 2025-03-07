@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudFormation template to create an EKS cluster using a custom Lambda function with a unique name.
 
 Resources:
-  CustomEKSCluster:
+  ControlPlane:
     Type: Custom::MyEKSResource
     Properties:
       ServiceToken: !GetAtt CustomEKSFunction.Arn
@@ -64,7 +64,10 @@ Resources:
 Outputs:
   ClusterArn:
     Description: ARN of the created EKS cluster
-    Value: !GetAtt CustomEKSCluster.PhysicalResourceId
+    Value: !GetAtt ControlPlane.PhysicalResourceId
+  Arn:
+    Description: ARN of the created EKS cluster
+    Value: !GetAtt ControlPlane.PhysicalResourceId
   ClusterName:
     Description: Name of the created EKS cluster
-    Value: !GetAtt CustomEKSCluster.ClusterName
+    Value: !GetAtt ControlPlane.ClusterName

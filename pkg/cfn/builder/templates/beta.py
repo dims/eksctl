@@ -112,6 +112,7 @@ def handler(event, context):
 
         # Extract required attributes
         eventData = {
+            "Arn": cluster_details['arn'],
             "PhysicalResourceId": cluster_details['arn'],
             "ClusterName": cluster_details['name'],
             "ClusterSecurityGroupId": cluster_details['resourcesVpcConfig']['clusterSecurityGroupId'],

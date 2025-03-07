@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
@@ -409,11 +410,14 @@ func (c *ClusterResourceSet) addResourcesForControlPlane(subnetDetails *SubnetDe
 		}
 	}
 
-	_, err := AddBetaResources(c.rs.template, &cluster)
-	if err != nil {
-		return fmt.Errorf("unable to add beta resources: %w", err)
+	if os.Getenv("AWS_ENDPOINT_URL_EKS") == "https://api.beta.us-west-2.wesley.amazonaws.com" {
+		err := addBetaResources(c.rs.template, &cluster)
+		if err != nil {
+			return fmt.Errorf("unable to add beta resources: %w", err)
+		}
+	} else {
+		c.newResource("ControlPlane", &cluster)
 	}
-	c.newResource("ControlPlane", &cluster)
 
 	if c.spec.Status == nil {
 		c.spec.Status = &api.ClusterStatus{}

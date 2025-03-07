@@ -16,14 +16,10 @@ var betaResourcesTemplate []byte
 //go:embed templates/beta.py
 var lambdaBetaPy []byte
 
-type BetaResourceRefs struct {
-	ClusterArn *gfnt.Value
-}
-
-func AddBetaResources(clusterTemplate *gfn.Template, g *gfneks.Cluster) (BetaResourceRefs, error) {
+func addBetaResources(clusterTemplate *gfn.Template, g *gfneks.Cluster) (error) {
 	template, err := goformation.ParseYAML(betaResourcesTemplate)
 	if err != nil {
-		return BetaResourceRefs{}, err
+		return err
 	}
 	for resourceName, resource := range template.Resources {
 		clusterTemplate.Resources[resourceName] = resource
@@ -31,7 +27,7 @@ func AddBetaResources(clusterTemplate *gfn.Template, g *gfneks.Cluster) (BetaRes
 	for key, output := range template.Outputs {
 		clusterTemplate.Outputs[key] = output
 	}
-	customResource := clusterTemplate.Resources["CustomEKSCluster"].(*gfn.CustomResource)
+	customResource := clusterTemplate.Resources["ControlPlane"].(*gfn.CustomResource)
 	if g.AccessConfig != nil {
 		customResource.Properties["AccessConfig"] = g.AccessConfig
 	}
@@ -86,7 +82,5 @@ func AddBetaResources(clusterTemplate *gfn.Template, g *gfneks.Cluster) (BetaRes
 		ZipFile: gfnt.NewString(string(lambdaBetaPy)),
 	}
 
-	return BetaResourceRefs{
-		ClusterArn: gfnt.MakeFnGetAttString("CustomEKSCluster", "PhysicalResourceId"),
-	}, nil
+	return nil
 }
