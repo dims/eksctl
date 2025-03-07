@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 
 	"github.com/tidwall/gjson"
 
@@ -30,10 +31,11 @@ type ClusterResourceSet struct {
 	region         string
 	vpcResourceSet VPCResourceSet
 	securityGroups *gfnt.Value
+	stsAPI         awsapi.STS
 }
 
 // NewClusterResourceSet returns a resource set for the new cluster.
-func NewClusterResourceSet(ec2API awsapi.EC2, region string, spec *api.ClusterConfig, existingStack *gjson.Result, extendForOutposts bool) *ClusterResourceSet {
+func NewClusterResourceSet(ec2API awsapi.EC2, stsAPI awsapi.STS, region string, spec *api.ClusterConfig, existingStack *gjson.Result, extendForOutposts bool) *ClusterResourceSet {
 	var usesExistingVPC bool
 	if existingStack != nil {
 		unsetExistingResources(existingStack, spec)
@@ -60,6 +62,7 @@ func NewClusterResourceSet(ec2API awsapi.EC2, region string, spec *api.ClusterCo
 		rs:             rs,
 		spec:           spec,
 		ec2API:         ec2API,
+		stsAPI:         stsAPI,
 		region:         region,
 		vpcResourceSet: vpcResourceSet,
 	}
@@ -411,7 +414,18 @@ func (c *ClusterResourceSet) addResourcesForControlPlane(subnetDetails *SubnetDe
 	}
 
 	if os.Getenv("AWS_ENDPOINT_URL_EKS") == "https://api.beta.us-west-2.wesley.amazonaws.com" {
-		err := addBetaResources(c.rs.template, &cluster)
+		identity, err := c.stsAPI.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
+		if err != nil {
+			return fmt.Errorf("unable to get identity: %w", err)
+		}
+		userArn := *identity.Arn
+		baseArn := userArn[:strings.LastIndex(userArn, "/")]
+		roleArn := fmt.Sprintf("%s%s", baseArn, "/{{SessionName}}")
+		iamARN := strings.Replace(
+			strings.Replace(baseArn, "assumed-role", "role", 1),
+			"sts", "iam", 1)
+
+		err = addBetaResources(c.rs.template, &cluster, roleArn, iamARN)
 		if err != nil {
 			return fmt.Errorf("unable to add beta resources: %w", err)
 		}

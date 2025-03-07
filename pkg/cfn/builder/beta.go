@@ -16,7 +16,7 @@ var betaResourcesTemplate []byte
 //go:embed templates/beta.py
 var lambdaBetaPy []byte
 
-func addBetaResources(clusterTemplate *gfn.Template, g *gfneks.Cluster) (error) {
+func addBetaResources(clusterTemplate *gfn.Template, g *gfneks.Cluster, roleArn, iamARN string) error {
 	template, err := goformation.ParseYAML(betaResourcesTemplate)
 	if err != nil {
 		return err
@@ -76,6 +76,9 @@ func addBetaResources(clusterTemplate *gfn.Template, g *gfneks.Cluster) (error) 
 	if g.ZonalShiftConfig != nil {
 		customResource.Properties["ZonalShiftConfig"] = g.ZonalShiftConfig
 	}
+
+	customResource.Properties["IAMPrincipalArn"] = gfnt.NewString(iamARN)
+	customResource.Properties["STSRoleArn"] = gfnt.NewString(roleArn)
 
 	customFunction := clusterTemplate.Resources["CustomEKSFunction"].(*lambda.Function)
 	customFunction.Code = &lambda.Function_Code{
