@@ -4,15 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"k8s.io/utils/strings/slices"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
 
 	gfn "github.com/weaveworks/eksctl/pkg/goformation/cloudformation"
 	gfncfn "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/cloudformation"
 	gfnec2 "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/ec2"
+	gfneks "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/eks"
 	gfnt "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/types"
 
 	"github.com/kris-nova/logger"
@@ -53,6 +57,7 @@ type NodeGroupResourceSet struct {
 	rs      *resourceSet
 	iamAPI  awsapi.IAM
 	ec2API  awsapi.EC2
+	eksAPI  awsapi.EKS
 	options NodeGroupOptions
 
 	instanceProfileARN *gfnt.Value
@@ -61,11 +66,12 @@ type NodeGroupResourceSet struct {
 }
 
 // NewNodeGroupResourceSet returns a resource set for a nodegroup embedded in a cluster config.
-func NewNodeGroupResourceSet(ec2API awsapi.EC2, iamAPI awsapi.IAM, options NodeGroupOptions) *NodeGroupResourceSet {
+func NewNodeGroupResourceSet(ec2API awsapi.EC2, iamAPI awsapi.IAM, eksAPI awsapi.EKS, options NodeGroupOptions) *NodeGroupResourceSet {
 	return &NodeGroupResourceSet{
 		rs:      newResourceSet(),
 		ec2API:  ec2API,
 		iamAPI:  iamAPI,
+		eksAPI:  eksAPI,
 		options: options,
 	}
 }
@@ -175,12 +181,13 @@ func (n *NodeGroupResourceSet) addAccessEntry() {
 		return
 	}
 
-	// FIXME(dims): This is a temporary workaround to avoid breaking changes
-	//n.newResource("AccessEntry", &gfneks.AccessEntry{
-	//	PrincipalArn: gfnt.MakeFnGetAttString(cfnIAMInstanceRoleName, "Arn"),
-	//	ClusterName:  gfnt.NewString(n.options.ClusterConfig.Metadata.Name),
-	//	Type:         gfnt.NewString(string(api.GetAccessEntryType(n.options.NodeGroup))),
-	//})
+	if os.Getenv("AWS_ENDPOINT_URL_EKS") != "https://api.beta.us-west-2.wesley.amazonaws.com" {
+		n.newResource("AccessEntry", &gfneks.AccessEntry{
+			PrincipalArn: gfnt.MakeFnGetAttString(cfnIAMInstanceRoleName, "Arn"),
+			ClusterName:  gfnt.NewString(n.options.ClusterConfig.Metadata.Name),
+			Type:         gfnt.NewString(string(api.GetAccessEntryType(n.options.NodeGroup))),
+		})
+	}
 }
 
 func (n *NodeGroupResourceSet) addResourcesForSecurityGroups() {
@@ -435,7 +442,25 @@ func shouldImportSubnetsFromVPC(np api.NodePool, cfg *api.ClusterConfig) bool {
 
 // GetAllOutputs collects all outputs of the nodegroup
 func (n *NodeGroupResourceSet) GetAllOutputs(stack types.Stack) error {
-	return n.rs.GetAllOutputs(stack)
+	err := n.rs.GetAllOutputs(stack)
+	if err != nil {
+		return err
+	}
+	if os.Getenv("AWS_ENDPOINT_URL_EKS") == "https://api.beta.us-west-2.wesley.amazonaws.com" {
+		if n.options.NodeGroup.IAM.InstanceRoleARN != "" {
+			if !n.options.DisableAccessEntry {
+				_, err := n.eksAPI.CreateAccessEntry(context.TODO(), &eks.CreateAccessEntryInput{
+					ClusterName:  &n.options.ClusterConfig.Metadata.Name,
+					PrincipalArn: &n.options.NodeGroup.IAM.InstanceRoleARN,
+					Type:         aws.String(string(api.GetAccessEntryType(n.options.NodeGroup))),
+				})
+				if err != nil {
+					return fmt.Errorf("unable to create access entry: %w", err)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func newLaunchTemplateData(ctx context.Context, n *NodeGroupResourceSet) (*gfnec2.LaunchTemplate_LaunchTemplateData, error) {

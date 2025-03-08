@@ -78,7 +78,7 @@ func (c *StackCollection) NewUnmanagedNodeGroupTask(ctx context.Context, nodeGro
 		ClusterConfig: c.spec,
 		NodeGroups:    nodeGroups,
 		CreateNodeGroupResourceSet: func(options builder.NodeGroupOptions) NodeGroupResourceSet {
-			return builder.NewNodeGroupResourceSet(c.ec2API, c.iamAPI, options)
+			return builder.NewNodeGroupResourceSet(c.ec2API, c.iamAPI, c.eksAPI, options)
 		},
 		NewBootstrapper: func(clusterConfig *api.ClusterConfig, ng *api.NodeGroup) (nodebootstrap.Bootstrapper, error) {
 			return nodebootstrap.NewBootstrapper(clusterConfig, ng)
