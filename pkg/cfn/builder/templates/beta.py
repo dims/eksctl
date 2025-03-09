@@ -108,9 +108,18 @@ def create_access_entry(eks_client, principal_arn, username, cluster_name):
         policyArn=policy_arn,
         accessScope={
             'type': 'cluster',  # Scope type (cluster or namespace)
-            'namespaces': []    # Leave empty for cluster-wide access
+            'namespaces': []  # Leave empty for cluster-wide access
         }
     )
+
+
+def get_stack_tags(event):
+    stack_name = event['StackId'].split('/')[1]
+    cf = boto3.client('cloudformation')
+    response = cf.describe_stacks(StackName=stack_name)
+    stack_tags = response['Stacks'][0].get('Tags', [])
+    tag_dict = {tag['Key']: tag['Value'] for tag in stack_tags}
+    return tag_dict
 
 
 def handler(event, context):
@@ -152,6 +161,15 @@ def handler(event, context):
         del create_cluster_payload['iAMPrincipalArn']
         del create_cluster_payload['sTSRoleArn']
         replace_boolean_strings(create_cluster_payload)
+
+        # get the stack level tags
+        stack_tags = get_stack_tags(event)
+        logger.info("Stack Tags: " + json.dumps(stack_tags, default=str))
+        # Add stack tags to the create_cluster_payload tags
+        if 'tags' not in create_cluster_payload:
+            create_cluster_payload['tags'] = {}
+
+        create_cluster_payload['tags'].update(stack_tags)
 
         # create and wait for the eks cluster
         cluster_details, response = create_cluster(eks_client, cluster_name, create_cluster_payload)

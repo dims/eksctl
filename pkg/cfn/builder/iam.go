@@ -3,6 +3,7 @@ package builder
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
@@ -125,6 +126,14 @@ func (c *ClusterResourceSet) addResourcesForServiceRole() {
 				MakeServiceRef("EKS"),
 			),
 			ManagedPolicyArns: gfnt.NewSlice(makePolicyARNs(managedPolicyARNs...)...),
+		}
+		// FIXME(dims): This is a temporary but dangerous workaround to allow eksctl to work with beta API endpoint
+		if os.Getenv("AWS_ENDPOINT_URL_EKS") == "https://api.beta.us-west-2.wesley.amazonaws.com" {
+			//statements := role.AssumeRolePolicyDocument.(cft.MapOfInterfaces)["Statement"].([]cft.MapOfInterfaces)
+			//principal := statements[0]["Principal"].(map[string][]*gfn.Value)
+			//principal["AWS"] = []*gfn.Value{
+			//	gfnt.NewString("*"),
+			//}
 		}
 	}
 
