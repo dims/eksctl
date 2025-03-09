@@ -7,10 +7,6 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CustomEKSFunction.Arn
       RoleArn: !GetAtt ServiceRole.Arn
-    Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${AWS::StackName}/ControlPlane
 
   CustomEKSFunction:
     Type: AWS::Lambda::Function

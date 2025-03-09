@@ -2,6 +2,7 @@ package builder
 
 import (
 	_ "embed"
+	"github.com/weaveworks/eksctl/pkg/goformation/cloudformation/cloudformation"
 	gfneks "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/eks"
 	"github.com/weaveworks/eksctl/pkg/goformation/cloudformation/lambda"
 
@@ -16,7 +17,7 @@ var betaResourcesTemplate []byte
 //go:embed templates/beta.py
 var lambdaBetaPy []byte
 
-func addBetaResources(clusterTemplate *gfn.Template, g *gfneks.Cluster, roleArn, iamARN string) error {
+func addBetaResources(clusterName string, clusterTemplate *gfn.Template, g *gfneks.Cluster, roleArn, iamARN string) error {
 	template, err := goformation.ParseYAML(betaResourcesTemplate)
 	if err != nil {
 		return err
@@ -65,7 +66,18 @@ func addBetaResources(clusterTemplate *gfn.Template, g *gfneks.Cluster, roleArn,
 		customResource.Properties["StorageConfig"] = g.StorageConfig
 	}
 	if g.Tags != nil {
+		g.Tags = append(g.Tags, cloudformation.Tag{
+			Key:   gfnt.NewString("Name"),
+			Value: gfnt.NewString(clusterName + "/ControlPlane"),
+		})
 		customResource.Properties["Tags"] = g.Tags
+	} else {
+		customResource.Properties["Tags"] = []cloudformation.Tag{
+			{
+				Key:   gfnt.NewString("Name"),
+				Value: gfnt.NewString(clusterName + "/ControlPlane"),
+			},
+		}
 	}
 	if g.UpgradePolicy != nil {
 		customResource.Properties["UpgradePolicy"] = g.UpgradePolicy

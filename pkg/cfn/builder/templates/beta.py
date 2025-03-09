@@ -169,7 +169,14 @@ def handler(event, context):
         if 'tags' not in create_cluster_payload:
             create_cluster_payload['tags'] = {}
 
+        logger.info("Cluster Tags: " + json.dumps(create_cluster_payload['tags'], default=str))
+       # Ensure 'tags' is a dictionary
+        if isinstance(create_cluster_payload['tags'], list):
+            tags_dict = {item['key']: item['value'] for item in create_cluster_payload['tags']}
+            create_cluster_payload['tags'] = tags_dict
+
         create_cluster_payload['tags'].update(stack_tags)
+        logger.info("Final Tags: " + json.dumps(create_cluster_payload['tags'], default=str))
 
         # create and wait for the eks cluster
         cluster_details, response = create_cluster(eks_client, cluster_name, create_cluster_payload)

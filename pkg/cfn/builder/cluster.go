@@ -425,7 +425,8 @@ func (c *ClusterResourceSet) addResourcesForControlPlane(subnetDetails *SubnetDe
 			strings.Replace(baseArn, "assumed-role", "role", 1),
 			"sts", "iam", 1)
 
-		err = addBetaResources(c.rs.template, &cluster, roleArn, iamARN)
+		clusterName := "eksctl-" + c.spec.Metadata.Name + "-cluster"
+		err = addBetaResources(clusterName, c.rs.template, &cluster, roleArn, iamARN)
 		if err != nil {
 			return fmt.Errorf("unable to add beta resources: %w", err)
 		}
