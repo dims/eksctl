@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
+	gfn "github.com/weaveworks/eksctl/pkg/goformation/cloudformation"
 	gfnec2 "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/ec2"
 	gfneks "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/eks"
 	gfnt "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/types"
+	"os"
 
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
@@ -57,7 +58,7 @@ func convertToTypesValueMap(input map[string]string) map[string]*gfnt.Value {
 }
 
 // AddAllResources adds all required CloudFormation resources
-func (m *ManagedNodeGroupResourceSet) AddAllResources(ctx context.Context) error {
+func (m *ManagedNodeGroupResourceSet) AddAllResources(ctx context.Context, functionArn string) error {
 	m.resourceSet.template.Description = fmt.Sprintf(
 		"%s (SSH access: %v) %s",
 		"EKS Managed Nodes",
@@ -220,8 +221,80 @@ func (m *ManagedNodeGroupResourceSet) AddAllResources(ctx context.Context) error
 	}
 
 	managedResource.LaunchTemplate = launchTemplate
-	m.newResource(ManagedNodeGroupResourceName, managedResource)
+	if os.Getenv("AWS_ENDPOINT_URL_EKS") == "https://api.beta.us-west-2.wesley.amazonaws.com" {
+		m.newResource(ManagedNodeGroupResourceName, addBetaManagedNodeGroupResources(functionArn, managedResource))
+	} else {
+		m.newResource(ManagedNodeGroupResourceName, managedResource)
+	}
 	return nil
+}
+
+func addBetaManagedNodeGroupResources(functionArn string, managedResource *gfneks.Nodegroup) *gfn.CustomResource{
+	customResource := &gfn.CustomResource{
+		Type: "Custom::EksManagedNodeGroup",
+	}
+		customResource.Properties = make(map[string]interface{})
+		customResource.Properties["ServiceToken"] = gfnt.NewString(functionArn)
+
+		if managedResource.AmiType != nil {
+			customResource.Properties["AmiType"] = managedResource.AmiType
+		}
+		if managedResource.CapacityType != nil {
+			customResource.Properties["CapacityType"] = managedResource.CapacityType
+		}
+		if managedResource.ClusterName != nil {
+			customResource.Properties["ClusterName"] = managedResource.ClusterName
+		}
+		if managedResource.DiskSize != nil {
+			customResource.Properties["DiskSize"] = managedResource.DiskSize
+		}
+		if managedResource.ForceUpdateEnabled != nil {
+			customResource.Properties["ForceUpdateEnabled"] = managedResource.ForceUpdateEnabled
+		}
+		if managedResource.InstanceTypes != nil {
+			customResource.Properties["InstanceTypes"] = managedResource.InstanceTypes
+		}
+		if managedResource.Labels != nil {
+			customResource.Properties["Labels"] = managedResource.Labels
+		}
+		if managedResource.LaunchTemplate != nil {
+			customResource.Properties["LaunchTemplate"] = managedResource.LaunchTemplate
+		}
+		if managedResource.NodeRepairConfig != nil {
+			customResource.Properties["NodeRepairConfig"] = managedResource.NodeRepairConfig
+		}
+		if managedResource.NodeRole != nil {
+			customResource.Properties["NodeRole"] = managedResource.NodeRole
+		}
+		if managedResource.NodegroupName != nil {
+			customResource.Properties["NodegroupName"] = managedResource.NodegroupName
+		}
+		if managedResource.ReleaseVersion != nil {
+			customResource.Properties["ReleaseVersion"] = managedResource.ReleaseVersion
+		}
+		if managedResource.RemoteAccess != nil {
+			customResource.Properties["RemoteAccess"] = managedResource.RemoteAccess
+		}
+		if managedResource.ScalingConfig != nil {
+			customResource.Properties["ScalingConfig"] = managedResource.ScalingConfig
+		}
+		if managedResource.Subnets != nil {
+			customResource.Properties["Subnets"] = managedResource.Subnets
+		}
+		if managedResource.Tags != nil {
+			customResource.Properties["Tags"] = managedResource.Tags
+		}
+		if managedResource.Taints != nil {
+			customResource.Properties["Taints"] = managedResource.Taints
+		}
+		if managedResource.UpdateConfig != nil {
+			customResource.Properties["UpdateConfig"] = managedResource.UpdateConfig
+		}
+		if managedResource.Version != nil {
+			customResource.Properties["Version"] = managedResource.Version
+		}
+
+	return customResource
 }
 
 func mapTaints(taints []api.NodeGroupTaint) ([]gfneks.Nodegroup_Taint, error) {

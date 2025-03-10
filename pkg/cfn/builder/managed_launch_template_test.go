@@ -79,7 +79,7 @@ var _ = Describe("ManagedNodeGroup builder", func() {
 			})
 
 		stack := builder.NewManagedNodeGroup(provider.MockEC2(), clusterConfig, m.ng, builder.NewLaunchTemplateFetcher(provider.MockEC2()), bootstrapper, false, fakeVPCImporter)
-		err := stack.AddAllResources(context.Background())
+		err := stack.AddAllResources(context.Background(), "")
 		if m.errMsg != "" {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring(m.errMsg))

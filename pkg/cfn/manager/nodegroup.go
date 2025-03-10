@@ -191,7 +191,18 @@ func (c *StackCollection) createManagedNodeGroupTask(ctx context.Context, errorC
 		return err
 	}
 	stack := builder.NewManagedNodeGroup(c.ec2API, c.spec, ng, builder.NewLaunchTemplateFetcher(c.ec2API), bootstrapper, forceAddCNIPolicy, vpcImporter)
-	if err := stack.AddAllResources(ctx); err != nil {
+
+	var functionArn string
+	if cluster != nil {
+		for _, output := range cluster.Outputs {
+			if *output.OutputKey == "EKSFunctionArn" {
+				functionArn = *output.OutputValue
+				break
+			}
+		}
+	}
+
+	if err := stack.AddAllResources(ctx, functionArn); err != nil {
 		return err
 	}
 

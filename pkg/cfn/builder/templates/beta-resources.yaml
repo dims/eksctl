@@ -3,7 +3,7 @@ Description: CloudFormation template to create an EKS cluster using a custom Lam
 
 Resources:
   ControlPlane:
-    Type: Custom::MyEKSResource
+    Type: Custom::EksCluster
     Properties:
       ServiceToken: !GetAtt CustomEKSFunction.Arn
       RoleArn: !GetAtt ServiceRole.Arn
@@ -34,12 +34,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - eks:CreateCluster
-                  - eks:DescribeCluster
-                  - eks:DeleteCluster
-                  - eks:CreateAccessEntry
-                  - eks:AssociateAccessPolicy
-                  - eks:TagResource
+                  - eks:*
                   - cloudformation:DescribeStacks
                 Resource: '*'
               - Effect: Allow

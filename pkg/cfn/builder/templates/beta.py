@@ -70,6 +70,19 @@ def replace_boolean_strings(d):
                 replace_boolean_strings(v)
 
 
+def replace_integer_strings(d):
+    """
+    Replace string representations of integers with actual integers.
+    """
+    if isinstance(d, (dict, list)):
+        iterable = d.items() if isinstance(d, dict) else enumerate(d)
+        for k, v in iterable:
+            if isinstance(v, str) and v.isdigit():
+                d[k] = int(v)
+            elif isinstance(v, (dict, list)):
+                replace_integer_strings(v)
+
+
 def wait_for_cluster_creation(eks_client, cluster_name):
     """
     Wait for the EKS cluster to become ACTIVE.
@@ -98,7 +111,7 @@ def create_access_entry(eks_client, principal_arn, username, cluster_name):
         username=username
     )
     logger.info("Access entry created successfully:")
-    logger.info("Access entry resposne: " + json.dumps(response, default=str))
+    logger.info("Access entry response: " + json.dumps(response, default=str))
 
     # Associate the admin access policy
     policy_arn = 'arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy'
@@ -126,13 +139,71 @@ def handler(event, context):
     """
     Lambda function handler for CloudFormation custom resource.
     """
+    logger.info("Received event: " + json.dumps(event, default=str))
+
+    # Validate that the invocation is from CloudFormation
+    if 'RequestType' not in event:
+        raise ValueError("Invalid invocation source. This Lambda function can only be invoked by CloudFormation.")
+
+    if event['ResourceType'] == 'Custom::EksCluster':
+        return cluster_handler(event, context)
+
+    if event['ResourceType'] == 'Custom::EksManagedNodeGroup':
+        return nodegroup_handler(event, context)
+
+    raise ValueError(f"Invalid resource type {event['ResourceType']}")
+
+
+def nodegroup_handler(event, context):
     try:
-        logger.info("Received event: " + json.dumps(event, default=str))
+        eks_endpoint = os.environ.get('AWS_ENDPOINT_URL_EKS', 'https://api.beta.us-west-2.wesley.amazonaws.com')
+        eks_client = boto3.client('eks', endpoint_url=eks_endpoint)
 
-        # Validate that the invocation is from CloudFormation
-        if 'RequestType' not in event:
-            raise ValueError("Invalid invocation source. This Lambda function can only be invoked by CloudFormation.")
+        cluster_name = event['ResourceProperties']['ClusterName']
+        logger.info(f"cluster name : {cluster_name}")
 
+        # Handle Delete event
+        if event['RequestType'] == 'Delete':
+            # delete_cluster(eks_client, cluster_name)
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, {"Message": "Resource deleted"})
+            return {
+                'PhysicalResourceId': event['PhysicalResourceId']
+            }
+
+        # Prepare the nodegroup request payload from the custom resource properties
+        nodegroup_payload = convert_keys_to_lowercase_first_letter(
+            copy.deepcopy(event['ResourceProperties']))
+        del nodegroup_payload['serviceToken']
+        replace_boolean_strings(nodegroup_payload)
+        replace_integer_strings(nodegroup_payload)
+
+        update_payload_tags(nodegroup_payload, event)
+
+        logger.info("EKS nodegroup with payload: " + json.dumps(nodegroup_payload, default=str))
+        response = eks_client.create_nodegroup(**nodegroup_payload)
+        logger.info("EKS nodegroup created: " + json.dumps(response, default=str))
+
+        eventData = {
+            "Arn": response['nodegroup']['nodegroupArn'],
+            "PhysicalResourceId": response['nodegroup']['nodegroupArn'],
+        }
+
+        cfnresponse.send(event, context, cfnresponse.SUCCESS,
+                         eventData)
+        # Return the cluster ARN as the PhysicalResourceId
+        return {
+            'PhysicalResourceId': response['nodegroup']['nodegroupArn'],
+            'Data': json.dumps(response, default=str)
+        }
+
+    except Exception as e:
+        logger.error("Error: " + str(e))
+        cfnresponse.send(event, context, cfnresponse.FAILED, {"Message": str(e)})
+        return None
+
+
+def cluster_handler(event, context):
+    try:
         eks_endpoint = os.environ.get('AWS_ENDPOINT_URL_EKS', 'https://api.beta.us-west-2.wesley.amazonaws.com')
         eks_client = boto3.client('eks', endpoint_url=eks_endpoint)
 
@@ -162,21 +233,7 @@ def handler(event, context):
         del create_cluster_payload['sTSRoleArn']
         replace_boolean_strings(create_cluster_payload)
 
-        # get the stack level tags
-        stack_tags = get_stack_tags(event)
-        logger.info("Stack Tags: " + json.dumps(stack_tags, default=str))
-        # Add stack tags to the create_cluster_payload tags
-        if 'tags' not in create_cluster_payload:
-            create_cluster_payload['tags'] = {}
-
-        logger.info("Cluster Tags: " + json.dumps(create_cluster_payload['tags'], default=str))
-       # Ensure 'tags' is a dictionary
-        if isinstance(create_cluster_payload['tags'], list):
-            tags_dict = {item['key']: item['value'] for item in create_cluster_payload['tags']}
-            create_cluster_payload['tags'] = tags_dict
-
-        create_cluster_payload['tags'].update(stack_tags)
-        logger.info("Final Tags: " + json.dumps(create_cluster_payload['tags'], default=str))
+        update_payload_tags(create_cluster_payload, event)
 
         # create and wait for the eks cluster
         cluster_details, response = create_cluster(eks_client, cluster_name, create_cluster_payload)
@@ -205,6 +262,23 @@ def handler(event, context):
     except Exception as e:
         logger.error("Error: " + str(e))
         cfnresponse.send(event, context, cfnresponse.FAILED, {"Message": str(e)})
+        return None
+
+
+def update_payload_tags(payload, event):
+    # get the stack level tags
+    stack_tags = get_stack_tags(event)
+    logger.info("Stack Tags: " + json.dumps(stack_tags, default=str))
+    # Add stack tags to the create_cluster_payload tags
+    if 'tags' not in payload:
+        payload['tags'] = {}
+    logger.info("Cluster Tags: " + json.dumps(payload['tags'], default=str))
+    # Ensure 'tags' is a dictionary
+    if isinstance(payload['tags'], list):
+        tags_dict = {item['key']: item['value'] for item in payload['tags']}
+        payload['tags'] = tags_dict
+    payload['tags'].update(stack_tags)
+    logger.info("Final Tags: " + json.dumps(payload['tags'], default=str))
 
 
 def create_cluster(eks_client, cluster_name, create_cluster_payload):
