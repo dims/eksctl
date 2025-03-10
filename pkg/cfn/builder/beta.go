@@ -2,12 +2,13 @@ package builder
 
 import (
 	_ "embed"
-	"github.com/weaveworks/eksctl/pkg/goformation/cloudformation/cloudformation"
-	gfneks "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/eks"
-	"github.com/weaveworks/eksctl/pkg/goformation/cloudformation/lambda"
+	"fmt"
 
 	"github.com/weaveworks/eksctl/pkg/goformation"
 	gfn "github.com/weaveworks/eksctl/pkg/goformation/cloudformation"
+	"github.com/weaveworks/eksctl/pkg/goformation/cloudformation/cloudformation"
+	gfneks "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/eks"
+	"github.com/weaveworks/eksctl/pkg/goformation/cloudformation/lambda"
 	gfnt "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/types"
 )
 
@@ -95,6 +96,13 @@ func addBetaResources(clusterName string, clusterTemplate *gfn.Template, g *gfne
 	customFunction := clusterTemplate.Resources["CustomEKSFunction"].(*lambda.Function)
 	customFunction.Code = &lambda.Function_Code{
 		ZipFile: gfnt.NewString(string(lambdaBetaPy)),
+	}
+
+	clusterTemplate.Outputs["EKSFunctionArn"] = gfn.Output{
+		Value: gfnt.MakeFnGetAttString("CustomEKSFunction","Arn"),
+		Export: &gfn.Export{
+			Name: gfnt.MakeFnSubString(fmt.Sprintf("${%s}::EKSFunctionArn", gfnt.StackName)),
+		},
 	}
 
 	return nil
