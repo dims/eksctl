@@ -2,23 +2,23 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: mar-11-beta-06
+  name: mar-11-beta-07
   region: us-west-2
 
 iam:
   withOIDC: true
 
-managedNodeGroups:
-  - name: managed-ng
-    instanceType: t3.medium
-    minSize: 1
-    maxSize: 2
-    desiredCapacity: 1
-    volumeSize: 20
-
-#nodeGroups:
-#  - name: ng-1
+#managedNodeGroups:
+#  - name: managed-ng
 #    instanceType: t3.medium
-#    desiredCapacity: 2
 #    minSize: 1
-#    maxSize: 3
+#    maxSize: 2
+#    desiredCapacity: 1
+#    volumeSize: 20
+
+nodeGroups:
+  - name: ng-1
+    instanceType: t3.medium
+    desiredCapacity: 1
+    minSize: 1
+    maxSize: 3
