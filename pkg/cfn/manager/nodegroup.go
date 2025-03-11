@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
@@ -193,11 +194,13 @@ func (c *StackCollection) createManagedNodeGroupTask(ctx context.Context, errorC
 	stack := builder.NewManagedNodeGroup(c.ec2API, c.spec, ng, builder.NewLaunchTemplateFetcher(c.ec2API), bootstrapper, forceAddCNIPolicy, vpcImporter)
 
 	var functionArn string
-	if cluster != nil {
-		for _, output := range cluster.Outputs {
-			if *output.OutputKey == "EKSFunctionArn" {
-				functionArn = *output.OutputValue
-				break
+	if os.Getenv("AWS_ENDPOINT_URL_EKS") == "https://api.beta.us-west-2.wesley.amazonaws.com" {
+		if cluster != nil {
+			for _, output := range cluster.Outputs {
+				if *output.OutputKey == "EKSFunctionArn" {
+					functionArn = *output.OutputValue
+					break
+				}
 			}
 		}
 	}

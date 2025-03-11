@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+
 	gfn "github.com/weaveworks/eksctl/pkg/goformation/cloudformation"
 	gfnec2 "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/ec2"
 	gfneks "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/eks"
 	gfnt "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/types"
-	"os"
 
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
