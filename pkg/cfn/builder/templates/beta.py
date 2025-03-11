@@ -164,7 +164,10 @@ def nodegroup_handler(event, context):
 
         # Handle Delete event
         if event['RequestType'] == 'Delete':
-            # delete_cluster(eks_client, cluster_name)
+            nodegroup_name = event['ResourceProperties']['NodegroupName']
+            logger.info(f"nodegroup name : {nodegroup_name}")
+
+            eks_client.delete_nodegroup(clusterName=cluster_name, nodegroupName=nodegroup_name)
             cfnresponse.send(event, context, cfnresponse.SUCCESS, {"Message": "Resource deleted"})
             return {
                 'PhysicalResourceId': event['PhysicalResourceId']
