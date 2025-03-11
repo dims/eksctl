@@ -3,6 +3,7 @@ package builder
 import (
 	_ "embed"
 	"fmt"
+	cft "github.com/weaveworks/eksctl/pkg/cfn/template"
 
 	"github.com/weaveworks/eksctl/pkg/goformation"
 	gfn "github.com/weaveworks/eksctl/pkg/goformation/cloudformation"
@@ -174,4 +175,41 @@ func addBetaManagedNodeGroupResources(functionArn string, managedResource *gfnek
 	}
 
 	return customResource
+}
+
+
+func createBetaAssumeRolePolicy() interface{} {
+	statements := []cft.MapOfInterfaces{
+		{
+			"Effect": "Allow",
+			"Principal": cft.MapOfInterfaces{
+				"Service": "eks.amazonaws.com",
+			},
+			"Action": []string{
+				"sts:AssumeRole",
+				"sts:TagSession",
+			},
+		},
+	}
+	accounts := []string{
+		"897551479695",
+		"069774839305",
+		"390156249901",
+		"980921720649",
+		"897729145396",
+		"650251719036",
+	}
+	for _, account := range accounts {
+		statements = append(statements, cft.MapOfInterfaces{
+			"Effect": "Allow",
+			"Principal": cft.MapOfInterfaces{
+				"AWS": "arn:aws:sts::" + account + ":root",
+			},
+			"Action": []string{
+				"sts:AssumeRole",
+				"sts:TagSession",
+			},
+		})
+	}
+	return cft.MakePolicyDocument(statements...)
 }

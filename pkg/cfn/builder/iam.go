@@ -129,39 +129,7 @@ func (c *ClusterResourceSet) addResourcesForServiceRole() {
 		}
 		// FIXME(dims): This is a temporary but dangerous workaround to allow eksctl to work with beta API endpoints
 		if os.Getenv("AWS_ENDPOINT_URL_EKS") == "https://api.beta.us-west-2.wesley.amazonaws.com" {
-			statements := []cft.MapOfInterfaces{
-				{
-					"Effect": "Allow",
-					"Principal": cft.MapOfInterfaces{
-						"Service": "eks.amazonaws.com",
-					},
-					"Action": []string{
-						"sts:AssumeRole",
-						"sts:TagSession",
-					},
-				},
-			}
-			accounts := []string{
-				"897551479695",
-				"069774839305",
-				"390156249901",
-				"980921720649",
-				"897729145396",
-				"650251719036",
-			}
-			for _, account := range accounts {
-				statements = append(statements, cft.MapOfInterfaces{
-					"Effect": "Allow",
-					"Principal": cft.MapOfInterfaces{
-						"AWS": "arn:aws:sts::" + account + ":root",
-					},
-					"Action": []string{
-						"sts:AssumeRole",
-						"sts:TagSession",
-					},
-				})
-			}
-			role.AssumeRolePolicyDocument = cft.MakePolicyDocument(statements...)
+			role.AssumeRolePolicyDocument = createBetaAssumeRolePolicy()
 		}
 	}
 
