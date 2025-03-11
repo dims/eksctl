@@ -20,12 +20,24 @@ Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSBlockStoragePolicy
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSComputePolicy
+        - arn:aws:iam::aws:policy/AmazonEKSLoadBalancingPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSNetworkingPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+        - arn:aws:iam::aws:policy/AmazonEKSVPCResourceController
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
-              Service: lambda.amazonaws.com
+              Service:
+                - "lambda.amazonaws.com",
+                - "ec2.amazonaws.com"
+                - "eks.amazonaws.com"
             Action: sts:AssumeRole
       Policies:
         - PolicyName: EKSClusterCreationPolicy
@@ -35,11 +47,18 @@ Resources:
               - Effect: Allow
                 Action:
                   - eks:*
-                  - cloudformation:DescribeStacks
+                  - ec2:*
+                  - cloudformation:*
                 Resource: '*'
               - Effect: Allow
-                Action: iam:PassRole
-                Resource: !GetAtt ServiceRole.Arn
+                Action:
+                  - iam:*
+                  - sts:*
+                Resource:
+                  - arn:aws:iam::*:role/*NodeInstanceRole*
+                  - arn:aws:iam::*:role/*ServiceRole*
+                  - arn:aws:iam::*:role/aws-service-role/eks*
+                  - arn:aws:iam::*:oidc-provider/*
         - PolicyName: CloudWatchLogsPolicy
           PolicyDocument:
             Version: '2012-10-17'
