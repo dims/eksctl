@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	gfn "github.com/weaveworks/eksctl/pkg/goformation/cloudformation"
 	gfnec2 "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/ec2"
 	gfneks "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/eks"
 	gfnt "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/types"
@@ -228,74 +227,6 @@ func (m *ManagedNodeGroupResourceSet) AddAllResources(ctx context.Context, funct
 		m.newResource(ManagedNodeGroupResourceName, managedResource)
 	}
 	return nil
-}
-
-func addBetaManagedNodeGroupResources(functionArn string, managedResource *gfneks.Nodegroup) *gfn.CustomResource{
-	customResource := &gfn.CustomResource{
-		Type: "Custom::EksManagedNodeGroup",
-	}
-		customResource.Properties = make(map[string]interface{})
-		customResource.Properties["ServiceToken"] = gfnt.NewString(functionArn)
-
-		if managedResource.AmiType != nil {
-			customResource.Properties["AmiType"] = managedResource.AmiType
-		}
-		if managedResource.CapacityType != nil {
-			customResource.Properties["CapacityType"] = managedResource.CapacityType
-		}
-		if managedResource.ClusterName != nil {
-			customResource.Properties["ClusterName"] = managedResource.ClusterName
-		}
-		if managedResource.DiskSize != nil {
-			customResource.Properties["DiskSize"] = managedResource.DiskSize
-		}
-		if managedResource.ForceUpdateEnabled != nil {
-			customResource.Properties["ForceUpdateEnabled"] = managedResource.ForceUpdateEnabled
-		}
-		if managedResource.InstanceTypes != nil {
-			customResource.Properties["InstanceTypes"] = managedResource.InstanceTypes
-		}
-		if managedResource.Labels != nil {
-			customResource.Properties["Labels"] = managedResource.Labels
-		}
-		if managedResource.LaunchTemplate != nil {
-			customResource.Properties["LaunchTemplate"] = managedResource.LaunchTemplate
-		}
-		if managedResource.NodeRepairConfig != nil {
-			customResource.Properties["NodeRepairConfig"] = managedResource.NodeRepairConfig
-		}
-		if managedResource.NodeRole != nil {
-			customResource.Properties["NodeRole"] = managedResource.NodeRole
-		}
-		if managedResource.NodegroupName != nil {
-			customResource.Properties["NodegroupName"] = managedResource.NodegroupName
-		}
-		if managedResource.ReleaseVersion != nil {
-			customResource.Properties["ReleaseVersion"] = managedResource.ReleaseVersion
-		}
-		if managedResource.RemoteAccess != nil {
-			customResource.Properties["RemoteAccess"] = managedResource.RemoteAccess
-		}
-		if managedResource.ScalingConfig != nil {
-			customResource.Properties["ScalingConfig"] = managedResource.ScalingConfig
-		}
-		if managedResource.Subnets != nil {
-			customResource.Properties["Subnets"] = managedResource.Subnets
-		}
-		if managedResource.Tags != nil {
-			customResource.Properties["Tags"] = managedResource.Tags
-		}
-		if managedResource.Taints != nil {
-			customResource.Properties["Taints"] = managedResource.Taints
-		}
-		if managedResource.UpdateConfig != nil {
-			customResource.Properties["UpdateConfig"] = managedResource.UpdateConfig
-		}
-		if managedResource.Version != nil {
-			customResource.Properties["Version"] = managedResource.Version
-		}
-
-	return customResource
 }
 
 func mapTaints(taints []api.NodeGroupTaint) ([]gfneks.Nodegroup_Taint, error) {
