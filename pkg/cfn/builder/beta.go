@@ -215,27 +215,26 @@ func createBetaAssumeRolePolicy() interface{} {
 				"sts:TagSession",
 			},
 		},
-	}
-	accounts := []string{
-		"897551479695",
-		"069774839305",
-		"390156249901",
-		"980921720649",
-		"897729145396",
-		"650251719036",
-		"230450859571",
-	}
-	for _, account := range accounts {
-		statements = append(statements, cft.MapOfInterfaces{
+		{
 			"Effect": "Allow",
 			"Principal": cft.MapOfInterfaces{
-				"AWS": "arn:aws:sts::" + account + ":root",
+				"Service": "eks-beta.aws.internal",
 			},
 			"Action": []string{
 				"sts:AssumeRole",
 				"sts:TagSession",
 			},
-		})
+		},
+		{
+			"Effect": "Allow",
+			"Principal": cft.MapOfInterfaces{
+				"Service": "eks-gamma.aws.internal",
+			},
+			"Action": []string{
+				"sts:AssumeRole",
+				"sts:TagSession",
+			},
+		},
 	}
 	return cft.MakePolicyDocument(statements...)
 }
