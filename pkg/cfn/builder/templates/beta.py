@@ -301,7 +301,7 @@ def cluster_handler(event, context):
         cluster_details, response = create_cluster(eks_client, cluster_name, create_cluster_payload)
 
         # Create an access entry for the EKS cluster
-        create_access_entry(eks_client, iam_principal_arn, sts_role_arn, cluster_name, None)
+        create_access_entry(eks_client, iam_principal_arn, sts_role_arn, cluster_name, "STANDARD")
 
         # Extract required attributes
         eventData = {
