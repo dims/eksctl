@@ -11,6 +11,16 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
+def init_eks_client():
+    """
+    Initializes and returns an EKS client using the endpoint URL from the environment variable.
+    """
+    eks_endpoint = os.environ.get('AWS_ENDPOINT_URL_EKS')
+    if not eks_endpoint:
+        raise ValueError("AWS_ENDPOINT_URL_EKS environment variable is not set or is empty")
+    return boto3.client('eks', endpoint_url=eks_endpoint)
+
+
 def validate_input(event):
     """
     Validate that all required fields are present in the event.
@@ -20,15 +30,6 @@ def validate_input(event):
     for field in required_fields:
         if field not in event['ResourceProperties']:
             raise ValueError(f"Missing required field: {field}")
-
-
-def delete_cluster(eks_client, cluster_name):
-    """
-    Delete an EKS cluster.
-    """
-    logger.info(f"Deleting EKS cluster: {cluster_name}")
-    eks_client.delete_cluster(name=cluster_name)
-    logger.info(f"EKS cluster deleted: {cluster_name}")
 
 
 def convert_keys_to_lowercase_first_letter(d):
@@ -83,23 +84,6 @@ def replace_integer_strings(d):
                 replace_integer_strings(v)
 
 
-def wait_for_cluster_creation(eks_client, cluster_name):
-    """
-    Wait for the EKS cluster to become ACTIVE.
-    """
-    while True:
-        response = eks_client.describe_cluster(name=cluster_name)
-        status = response['cluster']['status']
-        if status == 'ACTIVE':
-            logger.info(f"EKS cluster {cluster_name} is now ACTIVE.")
-            return response['cluster']
-        elif status == 'FAILED':
-            raise Exception(f"EKS cluster {cluster_name} creation failed.")
-        else:
-            logger.info(f"EKS cluster {cluster_name} status: {status}. Waiting...")
-            time.sleep(10)  # Wait 10 seconds before polling again
-
-
 def create_access_entry(eks_client, principal_arn, username, cluster_name, entry_type):
     """
     Create an access entry for an IAM principal in an EKS cluster.
@@ -137,12 +121,34 @@ def create_access_entry(eks_client, principal_arn, username, cluster_name, entry
 
 
 def get_stack_tags(event):
+    """
+    Extracts and returns the tags of a CloudFormation stack from the given event.
+    """
     stack_name = event['StackId'].split('/')[1]
     cf = boto3.client('cloudformation')
     response = cf.describe_stacks(StackName=stack_name)
     stack_tags = response['Stacks'][0].get('Tags', [])
     tag_dict = {tag['Key']: tag['Value'] for tag in stack_tags}
     return tag_dict
+
+
+def update_payload_tags(payload, event):
+    """
+    Updates the payload with tags from the CloudFormation stack associated with the given event.
+    """
+    # get the stack level tags
+    stack_tags = get_stack_tags(event)
+    logger.info("Stack Tags: " + json.dumps(stack_tags, default=str))
+    # Add stack tags to the create_cluster_payload tags
+    if 'tags' not in payload:
+        payload['tags'] = {}
+    logger.info("Cluster Tags: " + json.dumps(payload['tags'], default=str))
+    # Ensure 'tags' is a dictionary
+    if isinstance(payload['tags'], list):
+        tags_dict = {item['key']: item['value'] for item in payload['tags']}
+        payload['tags'] = tags_dict
+    payload['tags'].update(stack_tags)
+    logger.info("Final Tags: " + json.dumps(payload['tags'], default=str))
 
 
 def handler(event, context):
@@ -167,109 +173,10 @@ def handler(event, context):
     raise ValueError(f"Invalid resource type {event['ResourceType']}")
 
 
-def access_entry_handler(event, context):
-    try:
-        eks_client = init_eks_client()
-
-        cluster_name = event['ResourceProperties']['ClusterName']
-        logger.info(f"cluster name : {cluster_name}")
-
-        principal_arn = event['ResourceProperties']['PrincipalArn']
-        logger.info(f"principal arn : {principal_arn}")
-
-        # Handle Delete event
-        if event['RequestType'] == 'Delete':
-            logger.info(f"access entry principal arn : {principal_arn}")
-
-            eks_client.delete_access_entry(clusterName=cluster_name, principalArn=principal_arn)
-            cfnresponse.send(event, context, cfnresponse.SUCCESS, {"Message": "Resource deleted"})
-            return {
-                'PhysicalResourceId': event['PhysicalResourceId']
-            }
-
-        username = event['ResourceProperties']['Username'] if 'Username' in event['ResourceProperties'] else None
-        logger.info(f"username : {username}")
-
-        entry_type = event['ResourceProperties']['Type']
-        logger.info(f"entry type : {entry_type}")
-
-        response = create_access_entry(eks_client, principal_arn, username, cluster_name, entry_type)
-        logger.info("EKS access entry created: " + json.dumps(response, default=str))
-
-        eventData = {
-            "Arn": response['accessEntry']['accessEntryArn'],
-            "PhysicalResourceId": response['accessEntry']['accessEntryArn'],
-        }
-        cfnresponse.send(event, context, cfnresponse.SUCCESS, eventData)
-        # Return the cluster ARN as the PhysicalResourceId
-        return {
-            'PhysicalResourceId': response['accessEntry']['accessEntryArn'],
-            'Data': json.dumps(response, default=str)
-        }
-    except Exception as e:
-        logger.error("Error: " + str(e))
-        cfnresponse.send(event, context, cfnresponse.FAILED, {"Message": str(e)})
-        return None
-
-
-def nodegroup_handler(event, context):
-    try:
-        eks_client = init_eks_client()
-
-        cluster_name = event['ResourceProperties']['ClusterName']
-        logger.info(f"cluster name : {cluster_name}")
-
-        # Handle Delete event
-        if event['RequestType'] == 'Delete':
-            nodegroup_name = event['ResourceProperties']['NodegroupName']
-            logger.info(f"nodegroup name : {nodegroup_name}")
-
-            eks_client.delete_nodegroup(clusterName=cluster_name, nodegroupName=nodegroup_name)
-            cfnresponse.send(event, context, cfnresponse.SUCCESS, {"Message": "Resource deleted"})
-            return {
-                'PhysicalResourceId': event['PhysicalResourceId']
-            }
-
-        # Prepare the nodegroup request payload from the custom resource properties
-        nodegroup_payload = convert_keys_to_lowercase_first_letter(
-            copy.deepcopy(event['ResourceProperties']))
-        del nodegroup_payload['serviceToken']
-        replace_boolean_strings(nodegroup_payload)
-        replace_integer_strings(nodegroup_payload)
-
-        update_payload_tags(nodegroup_payload, event)
-
-        logger.info("EKS nodegroup with payload: " + json.dumps(nodegroup_payload, default=str))
-        response = eks_client.create_nodegroup(**nodegroup_payload)
-        logger.info("EKS nodegroup created: " + json.dumps(response, default=str))
-
-        eventData = {
-            "Arn": response['nodegroup']['nodegroupArn'],
-            "PhysicalResourceId": response['nodegroup']['nodegroupArn'],
-        }
-
-        cfnresponse.send(event, context, cfnresponse.SUCCESS,
-                         eventData)
-        # Return the cluster ARN as the PhysicalResourceId
-        return {
-            'PhysicalResourceId': response['nodegroup']['nodegroupArn'],
-            'Data': json.dumps(response, default=str)
-        }
-
-    except Exception as e:
-        logger.error("Error: " + str(e))
-        cfnresponse.send(event, context, cfnresponse.FAILED, {"Message": str(e)})
-        return None
-
-
-def init_eks_client():
-    eks_endpoint = os.environ.get('AWS_ENDPOINT_URL_EKS')
-    if not eks_endpoint:
-        raise ValueError("AWS_ENDPOINT_URL_EKS environment variable is not set or is empty")
-    return boto3.client('eks', endpoint_url=eks_endpoint)
-
-
 def cluster_handler(event, context):
+    """
+    Handles the creation, update, and deletion of an EKS cluster as a CloudFormation custom resource.
+    """
     try:
         eks_client = init_eks_client()
 
@@ -331,24 +238,10 @@ def cluster_handler(event, context):
         return None
 
 
-def update_payload_tags(payload, event):
-    # get the stack level tags
-    stack_tags = get_stack_tags(event)
-    logger.info("Stack Tags: " + json.dumps(stack_tags, default=str))
-    # Add stack tags to the create_cluster_payload tags
-    if 'tags' not in payload:
-        payload['tags'] = {}
-    logger.info("Cluster Tags: " + json.dumps(payload['tags'], default=str))
-    # Ensure 'tags' is a dictionary
-    if isinstance(payload['tags'], list):
-        tags_dict = {item['key']: item['value'] for item in payload['tags']}
-        payload['tags'] = tags_dict
-    payload['tags'].update(stack_tags)
-    logger.info("Final Tags: " + json.dumps(payload['tags'], default=str))
-
-
 def create_cluster(eks_client, cluster_name, create_cluster_payload):
-    # Create the EKS cluster
+    """
+    Create the EKS cluster
+    """
     try:
         # Check if the cluster already exists
         logger.info(f"Checking if EKS cluster {cluster_name} already exists")
@@ -361,3 +254,130 @@ def create_cluster(eks_client, cluster_name, create_cluster_payload):
     # Wait for the cluster to become ACTIVE
     cluster_details = wait_for_cluster_creation(eks_client, cluster_name)
     return cluster_details, response
+
+
+def wait_for_cluster_creation(eks_client, cluster_name):
+    """
+    Wait for the EKS cluster to become ACTIVE.
+    """
+    while True:
+        response = eks_client.describe_cluster(name=cluster_name)
+        status = response['cluster']['status']
+        if status == 'ACTIVE':
+            logger.info(f"EKS cluster {cluster_name} is now ACTIVE.")
+            return response['cluster']
+        elif status == 'FAILED':
+            raise Exception(f"EKS cluster {cluster_name} creation failed.")
+        else:
+            logger.info(f"EKS cluster {cluster_name} status: {status}. Waiting...")
+            time.sleep(10)  # Wait 10 seconds before polling again
+
+
+def delete_cluster(eks_client, cluster_name):
+    """
+    Delete an EKS cluster.
+    """
+    logger.info(f"Deleting EKS cluster: {cluster_name}")
+    eks_client.delete_cluster(name=cluster_name)
+    logger.info(f"EKS cluster deleted: {cluster_name}")
+
+
+def nodegroup_handler(event, context):
+    """
+    Handles the creation, update, and deletion of an EKS managed node group as a CloudFormation custom resource.
+    """
+    try:
+        eks_client = init_eks_client()
+
+        cluster_name = event['ResourceProperties']['ClusterName']
+        logger.info(f"cluster name : {cluster_name}")
+
+        # Handle Delete event
+        if event['RequestType'] == 'Delete':
+            nodegroup_name = event['ResourceProperties']['NodegroupName']
+            logger.info(f"nodegroup name : {nodegroup_name}")
+
+            eks_client.delete_nodegroup(clusterName=cluster_name, nodegroupName=nodegroup_name)
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, {"Message": "Resource deleted"})
+            return {
+                'PhysicalResourceId': event['PhysicalResourceId']
+            }
+
+        # Prepare the nodegroup request payload from the custom resource properties
+        nodegroup_payload = convert_keys_to_lowercase_first_letter(
+            copy.deepcopy(event['ResourceProperties']))
+        del nodegroup_payload['serviceToken']
+        replace_boolean_strings(nodegroup_payload)
+        replace_integer_strings(nodegroup_payload)
+
+        update_payload_tags(nodegroup_payload, event)
+
+        logger.info("EKS nodegroup with payload: " + json.dumps(nodegroup_payload, default=str))
+        response = eks_client.create_nodegroup(**nodegroup_payload)
+        logger.info("EKS nodegroup created: " + json.dumps(response, default=str))
+
+        eventData = {
+            "Arn": response['nodegroup']['nodegroupArn'],
+            "PhysicalResourceId": response['nodegroup']['nodegroupArn'],
+        }
+
+        cfnresponse.send(event, context, cfnresponse.SUCCESS,
+                         eventData)
+        # Return the cluster ARN as the PhysicalResourceId
+        return {
+            'PhysicalResourceId': response['nodegroup']['nodegroupArn'],
+            'Data': json.dumps(response, default=str)
+        }
+
+    except Exception as e:
+        logger.error("Error: " + str(e))
+        cfnresponse.send(event, context, cfnresponse.FAILED, {"Message": str(e)})
+        return None
+
+
+def access_entry_handler(event, context):
+    """
+    Handles the creation, update, and deletion of an EKS access entry as a CloudFormation custom resource.
+    """
+    try:
+        eks_client = init_eks_client()
+
+        cluster_name = event['ResourceProperties']['ClusterName']
+        logger.info(f"cluster name : {cluster_name}")
+
+        principal_arn = event['ResourceProperties']['PrincipalArn']
+        logger.info(f"principal arn : {principal_arn}")
+
+        # Handle Delete event
+        if event['RequestType'] == 'Delete':
+            logger.info(f"access entry principal arn : {principal_arn}")
+
+            eks_client.delete_access_entry(clusterName=cluster_name, principalArn=principal_arn)
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, {"Message": "Resource deleted"})
+            return {
+                'PhysicalResourceId': event['PhysicalResourceId']
+            }
+
+        username = event['ResourceProperties']['Username'] if 'Username' in event['ResourceProperties'] else None
+        logger.info(f"username : {username}")
+
+        entry_type = event['ResourceProperties']['Type']
+        logger.info(f"entry type : {entry_type}")
+
+        response = create_access_entry(eks_client, principal_arn, username, cluster_name, entry_type)
+        logger.info("EKS access entry created: " + json.dumps(response, default=str))
+
+        eventData = {
+            "Arn": response['accessEntry']['accessEntryArn'],
+            "PhysicalResourceId": response['accessEntry']['accessEntryArn'],
+        }
+        cfnresponse.send(event, context, cfnresponse.SUCCESS, eventData)
+        # Return the cluster ARN as the PhysicalResourceId
+        return {
+            'PhysicalResourceId': response['accessEntry']['accessEntryArn'],
+            'Data': json.dumps(response, default=str)
+        }
+    except Exception as e:
+        logger.error("Error: " + str(e))
+        cfnresponse.send(event, context, cfnresponse.FAILED, {"Message": str(e)})
+        return None
