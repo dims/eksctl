@@ -136,7 +136,7 @@ func (n *NodeGroupResourceSet) AddAllResources(ctx context.Context) error {
 	}
 	n.addResourcesForSecurityGroups()
 	if !n.options.DisableAccessEntry {
-		n.addAccessEntry(n.options.ClusterConfig.Metadata.Name)
+		n.addAccessEntry()
 	}
 
 	return n.addResourcesForNodeGroup(ctx)
@@ -170,7 +170,7 @@ var ControlPlaneNodeGroupEgressRules = []PartialEgressRule{
 // ControlPlaneEgressRuleDescriptionPrefix is the prefix applied to the description for control plane security group egress rules.
 var ControlPlaneEgressRuleDescriptionPrefix = "Allow control plane to communicate with "
 
-func (n *NodeGroupResourceSet) addAccessEntry(stackName string) {
+func (n *NodeGroupResourceSet) addAccessEntry() {
 	n.rs.defineOutputWithoutCollector(outputs.NodeGroupUsesAccessEntry, true, false)
 	if n.options.DisableAccessEntryResource {
 		return
@@ -178,7 +178,7 @@ func (n *NodeGroupResourceSet) addAccessEntry(stackName string) {
 
 	if n.options.ClusterConfig.IsEksBetaEndpoint() {
 		n.newResource("AccessEntry",
-			addBetaAccessEntry(stackName,
+			addBetaAccessEntry(n.options.ClusterConfig.Metadata.Name,
 				string(api.GetAccessEntryType(n.options.NodeGroup))))
 	} else {
 		n.newResource("AccessEntry", &gfneks.AccessEntry{
