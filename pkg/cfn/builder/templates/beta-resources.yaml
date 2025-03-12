@@ -57,6 +57,7 @@ Resources:
                   - eks:*
                   - ec2:*
                   - cloudformation:*
+                  - iam:RemoveRoleFromInstanceProfile
                 Resource: '*'
               - Effect: Allow
                 Action:

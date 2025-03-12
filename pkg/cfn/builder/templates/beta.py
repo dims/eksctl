@@ -288,6 +288,7 @@ def nodegroup_handler(event, context):
     """
     try:
         eks_client = init_eks_client()
+        iam_client = boto3.client('iam')
 
         cluster_name = event['ResourceProperties']['ClusterName']
         logger.info(f"cluster name : {cluster_name}")
@@ -296,6 +297,27 @@ def nodegroup_handler(event, context):
         if event['RequestType'] == 'Delete':
             nodegroup_name = event['ResourceProperties']['NodegroupName']
             logger.info(f"nodegroup name : {nodegroup_name}")
+
+            response = eks_client.describe_nodegroup(
+                clusterName=cluster_name,
+                nodegroupName=nodegroup_name
+            )
+            nodegroup_role_arn = response['nodegroup']['nodeRole']
+            print(f"IAM Role ARN associated with the EKS node group: {nodegroup_role_arn}")
+
+            role_name = nodegroup_role_arn.split('/')[-1]
+            response = iam_client.list_instance_profiles_for_role(RoleName=role_name)
+            instance_profiles = response['InstanceProfiles']
+            for profile in instance_profiles:
+                # Process each profile
+                instance_profile_name = profile['InstanceProfileName']
+                logger.info(f"Processing instance profile: {instance_profile_name}")
+
+                iam_client.remove_role_from_instance_profile(
+                    InstanceProfileName=instance_profile_name,
+                    RoleName=role_name
+                )
+                print(f"Removed role {role_name} from instance profile: {instance_profile_name}")
 
             eks_client.delete_nodegroup(clusterName=cluster_name, nodegroupName=nodegroup_name)
             cfnresponse.send(event, context, cfnresponse.SUCCESS, {"Message": "Resource deleted"})
