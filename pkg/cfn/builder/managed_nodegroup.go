@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	gfnec2 "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/ec2"
 	gfneks "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/eks"
 	gfnt "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/types"

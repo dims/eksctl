@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+
 	"github.com/tidwall/gjson"
 
 	gfn "github.com/weaveworks/eksctl/pkg/goformation/cloudformation"

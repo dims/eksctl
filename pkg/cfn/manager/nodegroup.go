@@ -191,7 +191,6 @@ func (c *StackCollection) createManagedNodeGroupTask(ctx context.Context, errorC
 		return err
 	}
 	stack := builder.NewManagedNodeGroup(c.ec2API, c.spec, ng, builder.NewLaunchTemplateFetcher(c.ec2API), bootstrapper, forceAddCNIPolicy, vpcImporter)
-
 	if err := stack.AddAllResources(ctx); err != nil {
 		return err
 	}
