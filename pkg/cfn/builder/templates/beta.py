@@ -169,8 +169,7 @@ def handler(event, context):
 
 def access_entry_handler(event, context):
     try:
-        eks_endpoint = os.environ.get('AWS_ENDPOINT_URL_EKS', 'https://api.beta.us-west-2.wesley.amazonaws.com')
-        eks_client = boto3.client('eks', endpoint_url=eks_endpoint)
+        eks_client = init_eks_client()
 
         cluster_name = event['ResourceProperties']['ClusterName']
         logger.info(f"cluster name : {cluster_name}")
@@ -215,8 +214,7 @@ def access_entry_handler(event, context):
 
 def nodegroup_handler(event, context):
     try:
-        eks_endpoint = os.environ.get('AWS_ENDPOINT_URL_EKS', 'https://api.beta.us-west-2.wesley.amazonaws.com')
-        eks_client = boto3.client('eks', endpoint_url=eks_endpoint)
+        eks_client = init_eks_client()
 
         cluster_name = event['ResourceProperties']['ClusterName']
         logger.info(f"cluster name : {cluster_name}")
@@ -264,10 +262,16 @@ def nodegroup_handler(event, context):
         return None
 
 
+def init_eks_client():
+    eks_endpoint = os.environ.get('AWS_ENDPOINT_URL_EKS')
+    if not eks_endpoint:
+        raise ValueError("AWS_ENDPOINT_URL_EKS environment variable is not set or is empty")
+    return boto3.client('eks', endpoint_url=eks_endpoint)
+
+
 def cluster_handler(event, context):
     try:
-        eks_endpoint = os.environ.get('AWS_ENDPOINT_URL_EKS', 'https://api.beta.us-west-2.wesley.amazonaws.com')
-        eks_client = boto3.client('eks', endpoint_url=eks_endpoint)
+        eks_client = init_eks_client()
 
         cluster_name = event['ResourceProperties']['Name']
 

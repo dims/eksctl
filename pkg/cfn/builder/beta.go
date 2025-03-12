@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -125,6 +126,11 @@ func addBetaResources(stsAPI awsapi.STS, stackName string, clusterTemplate *gfn.
 		},
 	}
 
+	clusterTemplate.Parameters["EksEndpointUrl"] = gfn.Parameter{
+		Type:        "String",
+		Description: "The endpoint URL for the EKS service",
+		Default:     gfnt.NewString(os.Getenv("AWS_ENDPOINT_URL_EKS")),
+	}
 	return nil
 }
 

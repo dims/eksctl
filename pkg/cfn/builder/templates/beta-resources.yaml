@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudFormation template to create an EKS cluster using a custom Lambda function with a unique name.
 
+Parameters:
+  EksEndpointUrl:
+    Type: String
+    Description: The endpoint URL for the EKS service
+
 Resources:
   ControlPlane:
     Type: Custom::EksCluster
@@ -16,6 +21,9 @@ Resources:
       Runtime: python3.9
       Timeout: 900
       Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          AWS_ENDPOINT_URL_EKS: !Ref EksEndpointUrl
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
