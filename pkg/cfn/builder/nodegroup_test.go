@@ -55,7 +55,7 @@ var _ = Describe("Unmanaged NodeGroup Template Builder", func() {
 	})
 
 	JustBeforeEach(func() {
-		ngrs = builder.NewNodeGroupResourceSet(p.MockEC2(), p.MockIAM(), p.MockEKS(), builder.NodeGroupOptions{
+		ngrs = builder.NewNodeGroupResourceSet(p.MockEC2(), p.MockIAM(), builder.NodeGroupOptions{
 			ClusterConfig:      cfg,
 			NodeGroup:          ng,
 			Bootstrapper:       fakeBootstrapper,

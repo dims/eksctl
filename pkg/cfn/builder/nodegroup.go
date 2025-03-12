@@ -54,7 +54,6 @@ type NodeGroupResourceSet struct {
 	rs      *resourceSet
 	iamAPI  awsapi.IAM
 	ec2API  awsapi.EC2
-	eksAPI  awsapi.EKS
 	options NodeGroupOptions
 
 	instanceProfileARN *gfnt.Value
@@ -63,12 +62,11 @@ type NodeGroupResourceSet struct {
 }
 
 // NewNodeGroupResourceSet returns a resource set for a nodegroup embedded in a cluster config.
-func NewNodeGroupResourceSet(ec2API awsapi.EC2, iamAPI awsapi.IAM, eksAPI awsapi.EKS, options NodeGroupOptions) *NodeGroupResourceSet {
+func NewNodeGroupResourceSet(ec2API awsapi.EC2, iamAPI awsapi.IAM, options NodeGroupOptions) *NodeGroupResourceSet {
 	return &NodeGroupResourceSet{
 		rs:      newResourceSet(),
 		ec2API:  ec2API,
 		iamAPI:  iamAPI,
-		eksAPI:  eksAPI,
 		options: options,
 	}
 }

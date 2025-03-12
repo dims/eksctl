@@ -33,7 +33,7 @@ var _ = Describe("Nodegroup Builder", func() {
 		clusterConfig.Metadata.Name = "cluster"
 		mockSubnetsAndAZInstanceSupport(clusterConfig, provider, []string{"us-west-1a"}, nil, nil)
 
-		resourceSet := builder.NewNodeGroupResourceSet(provider.EC2(), provider.IAM(), provider.EKS(), builder.NodeGroupOptions{
+		resourceSet := builder.NewNodeGroupResourceSet(provider.EC2(), provider.IAM(), builder.NodeGroupOptions{
 			ClusterConfig:              clusterConfig,
 			NodeGroup:                  api.NewNodeGroup(),
 			Bootstrapper:               fakeBootstrapper,
