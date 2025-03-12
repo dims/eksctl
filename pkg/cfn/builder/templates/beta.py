@@ -345,9 +345,15 @@ def update_payload_tags(payload, event):
 
 def create_cluster(eks_client, cluster_name, create_cluster_payload):
     # Create the EKS cluster
-    logger.info("Creating EKS cluster with payload: " + json.dumps(create_cluster_payload, default=str))
-    response = eks_client.create_cluster(**create_cluster_payload)
-    logger.info("EKS cluster created: " + json.dumps(response, default=str))
+    try:
+        # Check if the cluster already exists
+        logger.info(f"Checking if EKS cluster {cluster_name} already exists")
+        response = eks_client.describe_cluster(name=cluster_name)
+    except eks_client.exceptions.ResourceNotFoundException:
+        logger.info("Creating EKS cluster with payload: " + json.dumps(create_cluster_payload, default=str))
+        response = eks_client.create_cluster(**create_cluster_payload)
+        logger.info("EKS cluster created: " + json.dumps(response, default=str))
+
     # Wait for the cluster to become ACTIVE
     cluster_details = wait_for_cluster_creation(eks_client, cluster_name)
     return cluster_details, response
