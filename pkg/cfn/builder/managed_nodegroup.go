@@ -58,7 +58,7 @@ func convertToTypesValueMap(input map[string]string) map[string]*gfnt.Value {
 }
 
 // AddAllResources adds all required CloudFormation resources
-func (m *ManagedNodeGroupResourceSet) AddAllResources(ctx context.Context, functionArn string) error {
+func (m *ManagedNodeGroupResourceSet) AddAllResources(ctx context.Context) error {
 	m.resourceSet.template.Description = fmt.Sprintf(
 		"%s (SSH access: %v) %s",
 		"EKS Managed Nodes",
@@ -222,7 +222,7 @@ func (m *ManagedNodeGroupResourceSet) AddAllResources(ctx context.Context, funct
 
 	managedResource.LaunchTemplate = launchTemplate
 	if os.Getenv("AWS_ENDPOINT_URL_EKS") == "https://api.beta.us-west-2.wesley.amazonaws.com" {
-		m.newResource(ManagedNodeGroupResourceName, addBetaManagedNodeGroupResources(functionArn, managedResource))
+		m.newResource(ManagedNodeGroupResourceName, addBetaManagedNodeGroupResources(managedResource, m.clusterConfig.Metadata.Name))
 	} else {
 		m.newResource(ManagedNodeGroupResourceName, managedResource)
 	}

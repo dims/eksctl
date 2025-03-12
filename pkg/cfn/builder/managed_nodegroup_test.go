@@ -123,7 +123,7 @@ func TestManagedPolicyResources(t *testing.T) {
 				[]string{}, // local zones
 				[]ec2types.InstanceType{api.DefaultNodeType})
 			stack := builder.NewManagedNodeGroup(p.EC2(), clusterConfig, ng, nil, bootstrapper, false, fakeVPCImporter)
-			err := stack.AddAllResources(context.Background(), "")
+			err := stack.AddAllResources(context.Background())
 			require.Nil(err)
 
 			bytes, err := stack.RenderJSON()
@@ -216,7 +216,7 @@ func TestManagedNodeRole(t *testing.T) {
 				[]string{}, // local zones
 				[]ec2types.InstanceType{api.DefaultNodeType})
 			stack := builder.NewManagedNodeGroup(p.EC2(), clusterConfig, tt.nodeGroup, nil, bootstrapper, false, fakeVPCImporter)
-			err = stack.AddAllResources(context.Background(), "")
+			err = stack.AddAllResources(context.Background())
 			require.NoError(err)
 
 			bytes, err := stack.RenderJSON()

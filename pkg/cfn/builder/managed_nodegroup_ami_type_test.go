@@ -46,7 +46,7 @@ var _ = DescribeTable("Managed Nodegroup AMI type", func(e amiTypeEntry) {
 		})
 	stack := builder.NewManagedNodeGroup(p.EC2(), clusterConfig, e.nodeGroup, nil, bootstrapper, false, fakeVPCImporter)
 
-	Expect(stack.AddAllResources(context.Background(), "")).To(Succeed())
+	Expect(stack.AddAllResources(context.Background())).To(Succeed())
 	bytes, err := stack.RenderJSON()
 	Expect(err).NotTo(HaveOccurred())
 

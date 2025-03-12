@@ -109,12 +109,13 @@ func addBetaResources(clusterName string, clusterTemplate *gfn.Template, g *gfne
 	return nil
 }
 
-func addBetaManagedNodeGroupResources(functionArn string, managedResource *gfneks.Nodegroup) *gfn.CustomResource {
+func addBetaManagedNodeGroupResources(managedResource *gfneks.Nodegroup, stackName string) *gfn.CustomResource {
 	customResource := &gfn.CustomResource{
 		Type: "Custom::EksManagedNodeGroup",
 	}
 	customResource.Properties = make(map[string]interface{})
-	customResource.Properties["ServiceToken"] = gfnt.NewString(functionArn)
+	functionArn := gfnt.MakeFnImportValueString(fmt.Sprintf("eksctl-%s-cluster::EKSFunctionArn", stackName))
+	customResource.Properties["ServiceToken"] = functionArn
 
 	if managedResource.AmiType != nil {
 		customResource.Properties["AmiType"] = managedResource.AmiType
