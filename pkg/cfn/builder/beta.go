@@ -238,3 +238,16 @@ func createBetaAssumeRolePolicy() interface{} {
 	}
 	return cft.MakePolicyDocument(statements...)
 }
+
+func addBetaAccessEntry(stackName string, accessEntryType string) *gfn.CustomResource {
+	customResource := &gfn.CustomResource{
+		Type: "Custom::EksAccessEntry",
+	}
+	customResource.Properties = make(map[string]interface{})
+	functionArn := gfnt.MakeFnImportValueString(fmt.Sprintf("eksctl-%s-cluster::EKSFunctionArn", stackName))
+	customResource.Properties["ServiceToken"] = functionArn
+	customResource.Properties["PrincipalArn"] = gfnt.MakeFnGetAttString(cfnIAMInstanceRoleName, "Arn")
+	customResource.Properties["ClusterName"] = gfnt.NewString(stackName)
+	customResource.Properties["Type"] = gfnt.NewString(accessEntryType)
+	return customResource
+}

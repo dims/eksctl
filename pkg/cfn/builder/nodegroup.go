@@ -176,16 +176,9 @@ func (n *NodeGroupResourceSet) addAccessEntry(stackName string) {
 	}
 
 	if n.options.ClusterConfig.IsEksBetaEndpoint() {
-		customResource := &gfn.CustomResource{
-			Type: "Custom::EksAccessEntry",
-		}
-		customResource.Properties = make(map[string]interface{})
-		functionArn := gfnt.MakeFnImportValueString(fmt.Sprintf("eksctl-%s-cluster::EKSFunctionArn", stackName))
-		customResource.Properties["ServiceToken"] = functionArn
-		customResource.Properties["PrincipalArn"] = gfnt.MakeFnGetAttString(cfnIAMInstanceRoleName, "Arn")
-		customResource.Properties["ClusterName"] = gfnt.NewString(n.options.ClusterConfig.Metadata.Name)
-		customResource.Properties["Type"] = gfnt.NewString(string(api.GetAccessEntryType(n.options.NodeGroup)))
-		n.newResource("AccessEntry", customResource)
+		n.newResource("AccessEntry",
+			addBetaAccessEntry(stackName,
+				string(api.GetAccessEntryType(n.options.NodeGroup))))
 	} else {
 		n.newResource("AccessEntry", &gfneks.AccessEntry{
 			PrincipalArn: gfnt.MakeFnGetAttString(cfnIAMInstanceRoleName, "Arn"),
