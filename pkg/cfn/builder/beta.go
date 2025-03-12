@@ -223,6 +223,7 @@ func createBetaAssumeRolePolicy() interface{} {
 		"980921720649",
 		"897729145396",
 		"650251719036",
+		"230450859571",
 	}
 	for _, account := range accounts {
 		statements = append(statements, cft.MapOfInterfaces{

@@ -220,7 +220,7 @@ func (m *ManagedNodeGroupResourceSet) AddAllResources(ctx context.Context) error
 	}
 
 	managedResource.LaunchTemplate = launchTemplate
-	if m.clusterConfig.IsEksBetaEndpoint() {
+	if m.clusterConfig.IsCustomEksEndpoint() {
 		m.newResource(ManagedNodeGroupResourceName, addBetaManagedNodeGroupResources(managedResource, m.clusterConfig.Metadata.Name))
 	} else {
 		m.newResource(ManagedNodeGroupResourceName, managedResource)

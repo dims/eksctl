@@ -1,11 +1,14 @@
 package v1alpha5
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
-func (c *ClusterConfig) IsEksBetaEndpoint() bool {
+func (c *ClusterConfig) IsCustomEksEndpoint() bool {
 	eksEndpoint := os.Getenv("AWS_EKS_ENDPOINT")
 	if eksEndpoint == "" {
 		eksEndpoint = os.Getenv("AWS_ENDPOINT_URL_EKS")
 	}
-	return eksEndpoint == "https://api.beta.us-west-2.wesley.amazonaws.com"
+	return strings.Contains(eksEndpoint, "beta") || strings.Contains(eksEndpoint, "gamma")
 }

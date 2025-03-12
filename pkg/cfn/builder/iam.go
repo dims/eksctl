@@ -127,7 +127,7 @@ func (c *ClusterResourceSet) addResourcesForServiceRole() {
 			ManagedPolicyArns: gfnt.NewSlice(makePolicyARNs(managedPolicyARNs...)...),
 		}
 		// FIXME(dims): This is a temporary but dangerous workaround to allow eksctl to work with beta API endpoints
-		if c.spec.IsEksBetaEndpoint() {
+		if c.spec.IsCustomEksEndpoint() {
 			role.AssumeRolePolicyDocument = createBetaAssumeRolePolicy()
 		}
 	}

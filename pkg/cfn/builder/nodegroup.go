@@ -176,7 +176,7 @@ func (n *NodeGroupResourceSet) addAccessEntry() {
 		return
 	}
 
-	if n.options.ClusterConfig.IsEksBetaEndpoint() {
+	if n.options.ClusterConfig.IsCustomEksEndpoint() {
 		n.newResource("AccessEntry",
 			addBetaAccessEntry(n.options.ClusterConfig.Metadata.Name,
 				string(api.GetAccessEntryType(n.options.NodeGroup))))

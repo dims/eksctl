@@ -411,7 +411,7 @@ func (c *ClusterResourceSet) addResourcesForControlPlane(subnetDetails *SubnetDe
 		}
 	}
 
-	if c.spec.IsEksBetaEndpoint() {
+	if c.spec.IsCustomEksEndpoint() {
 		err := addBetaResources(c.stsAPI, c.spec.Metadata.Name, c.rs.template, &cluster)
 		if err != nil {
 			return fmt.Errorf("unable to add beta resources: %w", err)
