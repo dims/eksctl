@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"k8s.io/utils/strings/slices"
@@ -176,7 +175,7 @@ func (n *NodeGroupResourceSet) addAccessEntry(stackName string) {
 		return
 	}
 
-	if os.Getenv("AWS_ENDPOINT_URL_EKS") == "https://api.beta.us-west-2.wesley.amazonaws.com" {
+	if n.options.ClusterConfig.IsEksBetaEndpoint() {
 		customResource := &gfn.CustomResource{
 			Type: "Custom::EksAccessEntry",
 		}

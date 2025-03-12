@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-
 	gfnec2 "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/ec2"
 	gfneks "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/eks"
 	gfnt "github.com/weaveworks/eksctl/pkg/goformation/cloudformation/types"
@@ -221,7 +219,7 @@ func (m *ManagedNodeGroupResourceSet) AddAllResources(ctx context.Context) error
 	}
 
 	managedResource.LaunchTemplate = launchTemplate
-	if os.Getenv("AWS_ENDPOINT_URL_EKS") == "https://api.beta.us-west-2.wesley.amazonaws.com" {
+	if m.clusterConfig.IsEksBetaEndpoint() {
 		m.newResource(ManagedNodeGroupResourceName, addBetaManagedNodeGroupResources(managedResource, m.clusterConfig.Metadata.Name))
 	} else {
 		m.newResource(ManagedNodeGroupResourceName, managedResource)
