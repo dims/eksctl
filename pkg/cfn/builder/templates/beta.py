@@ -100,30 +100,40 @@ def wait_for_cluster_creation(eks_client, cluster_name):
             time.sleep(10)  # Wait 10 seconds before polling again
 
 
-def create_access_entry(eks_client, principal_arn, username, cluster_name):
+def create_access_entry(eks_client, principal_arn, username, cluster_name, entry_type):
     """
     Create an access entry for an IAM principal in an EKS cluster.
     """
     logger.info(f"Creating access entry in EKS cluster: {cluster_name}")
-    response = eks_client.create_access_entry(
-        clusterName=cluster_name,
-        principalArn=principal_arn,
-        username=username
-    )
-    logger.info("Access entry created successfully:")
-    logger.info("Access entry response: " + json.dumps(response, default=str))
+    params = {
+        'clusterName': cluster_name,
+        'principalArn': principal_arn,
+    }
+    if username is not None:
+        params['username'] = username
+    if entry_type is not None:
+        params['type'] = entry_type
 
-    # Associate the admin access policy
-    policy_arn = 'arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy'
-    response = eks_client.associate_access_policy(
-        clusterName=cluster_name,
-        principalArn=principal_arn,
-        policyArn=policy_arn,
-        accessScope={
-            'type': 'cluster',  # Scope type (cluster or namespace)
-            'namespaces': []  # Leave empty for cluster-wide access
+    response1 = eks_client.create_access_entry(**params)
+    logger.info("Access entry called successfully:")
+    logger.info("Access entry response: " + json.dumps(response1, default=str))
+
+    if entry_type is not None and entry_type == "STANDARD":
+        # Associate the admin access policy
+        policy_arn = 'arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy'
+        params = {
+            'clusterName': cluster_name,
+            'principalArn': principal_arn,
+            'policyArn': policy_arn,
+            'accessScope': {
+                'type': 'cluster',
+                'namespaces': []
+            }
         }
-    )
+        response2 = eks_client.associate_access_policy(**params)
+        logger.info("Associate Access Policy called successfully:")
+        logger.info("Associate Access Policy response: " + json.dumps(response2, default=str))
+    return response1
 
 
 def get_stack_tags(event):
@@ -151,7 +161,56 @@ def handler(event, context):
     if event['ResourceType'] == 'Custom::EksManagedNodeGroup':
         return nodegroup_handler(event, context)
 
+    if event['ResourceType'] == 'Custom::EksAccessEntry':
+        return access_entry_handler(event, context)
+
     raise ValueError(f"Invalid resource type {event['ResourceType']}")
+
+
+def access_entry_handler(event, context):
+    try:
+        eks_endpoint = os.environ.get('AWS_ENDPOINT_URL_EKS', 'https://api.beta.us-west-2.wesley.amazonaws.com')
+        eks_client = boto3.client('eks', endpoint_url=eks_endpoint)
+
+        cluster_name = event['ResourceProperties']['ClusterName']
+        logger.info(f"cluster name : {cluster_name}")
+
+        principal_arn = event['ResourceProperties']['PrincipalArn']
+        logger.info(f"principal arn : {principal_arn}")
+
+        # Handle Delete event
+        if event['RequestType'] == 'Delete':
+            logger.info(f"access entry principal arn : {principal_arn}")
+
+            eks_client.delete_access_entry(clusterName=cluster_name, principalArn=principal_arn)
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, {"Message": "Resource deleted"})
+            return {
+                'PhysicalResourceId': event['PhysicalResourceId']
+            }
+
+        username = event['ResourceProperties']['Username'] if 'Username' in event['ResourceProperties'] else None
+        logger.info(f"username : {username}")
+
+        entry_type = event['ResourceProperties']['Type']
+        logger.info(f"entry type : {entry_type}")
+
+        response = create_access_entry(eks_client, principal_arn, username, cluster_name, entry_type)
+        logger.info("EKS access entry created: " + json.dumps(response, default=str))
+
+        eventData = {
+            "Arn": response['accessEntry']['accessEntryArn'],
+            "PhysicalResourceId": response['accessEntry']['accessEntryArn'],
+        }
+        cfnresponse.send(event, context, cfnresponse.SUCCESS, eventData)
+        # Return the cluster ARN as the PhysicalResourceId
+        return {
+            'PhysicalResourceId': response['accessEntry']['accessEntryArn'],
+            'Data': json.dumps(response, default=str)
+        }
+    except Exception as e:
+        logger.error("Error: " + str(e))
+        cfnresponse.send(event, context, cfnresponse.FAILED, {"Message": str(e)})
+        return None
 
 
 def nodegroup_handler(event, context):
@@ -242,7 +301,7 @@ def cluster_handler(event, context):
         cluster_details, response = create_cluster(eks_client, cluster_name, create_cluster_payload)
 
         # Create an access entry for the EKS cluster
-        create_access_entry(eks_client, iam_principal_arn, sts_role_arn, cluster_name)
+        create_access_entry(eks_client, iam_principal_arn, sts_role_arn, cluster_name, None)
 
         # Extract required attributes
         eventData = {

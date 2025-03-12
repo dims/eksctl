@@ -2,7 +2,7 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: mar-11-beta-07
+  name: mar-11-beta-12
   region: us-west-2
 
 iam:

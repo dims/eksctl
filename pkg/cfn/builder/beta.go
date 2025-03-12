@@ -177,7 +177,6 @@ func addBetaManagedNodeGroupResources(functionArn string, managedResource *gfnek
 	return customResource
 }
 
-
 func createBetaAssumeRolePolicy() interface{} {
 	statements := []cft.MapOfInterfaces{
 		{
