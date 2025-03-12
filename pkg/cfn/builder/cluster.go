@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
-
 	"github.com/tidwall/gjson"
 
 	gfn "github.com/weaveworks/eksctl/pkg/goformation/cloudformation"
@@ -414,19 +412,7 @@ func (c *ClusterResourceSet) addResourcesForControlPlane(subnetDetails *SubnetDe
 	}
 
 	if os.Getenv("AWS_ENDPOINT_URL_EKS") == "https://api.beta.us-west-2.wesley.amazonaws.com" {
-		identity, err := c.stsAPI.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
-		if err != nil {
-			return fmt.Errorf("unable to get identity: %w", err)
-		}
-		userArn := *identity.Arn
-		baseArn := userArn[:strings.LastIndex(userArn, "/")]
-		roleArn := fmt.Sprintf("%s%s", baseArn, "/{{SessionName}}")
-		iamARN := strings.Replace(
-			strings.Replace(baseArn, "assumed-role", "role", 1),
-			"sts", "iam", 1)
-
-		clusterName := "eksctl-" + c.spec.Metadata.Name + "-cluster"
-		err = addBetaResources(clusterName, c.rs.template, &cluster, roleArn, iamARN)
+		err := addBetaResources(c.stsAPI, c.spec.Metadata.Name, c.rs.template, &cluster)
 		if err != nil {
 			return fmt.Errorf("unable to add beta resources: %w", err)
 		}

@@ -1,10 +1,15 @@
 package builder
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
-	cft "github.com/weaveworks/eksctl/pkg/cfn/template"
+	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+
+	"github.com/weaveworks/eksctl/pkg/awsapi"
+	cft "github.com/weaveworks/eksctl/pkg/cfn/template"
 	"github.com/weaveworks/eksctl/pkg/goformation"
 	gfn "github.com/weaveworks/eksctl/pkg/goformation/cloudformation"
 	"github.com/weaveworks/eksctl/pkg/goformation/cloudformation/cloudformation"
@@ -19,7 +24,21 @@ var betaResourcesTemplate []byte
 //go:embed templates/beta.py
 var lambdaBetaPy []byte
 
-func addBetaResources(clusterName string, clusterTemplate *gfn.Template, g *gfneks.Cluster, roleArn, iamARN string) error {
+func addBetaResources(stsAPI awsapi.STS, stackName string, clusterTemplate *gfn.Template, g *gfneks.Cluster) error {
+
+	identity, err := stsAPI.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
+	if err != nil {
+		return fmt.Errorf("unable to get identity: %w", err)
+	}
+	userArn := *identity.Arn
+	baseArn := userArn[:strings.LastIndex(userArn, "/")]
+	roleArn := fmt.Sprintf("%s%s", baseArn, "/{{SessionName}}")
+	iamARN := strings.Replace(
+		strings.Replace(baseArn, "assumed-role", "role", 1),
+		"sts", "iam", 1)
+
+	clusterName := "eksctl-" + stackName + "-cluster"
+
 	template, err := goformation.ParseYAML(betaResourcesTemplate)
 	if err != nil {
 		return err
