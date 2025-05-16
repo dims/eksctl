@@ -47,6 +47,8 @@ func addCommands(rootCmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) {
 	rootCmd.AddCommand(completion.Command(rootCmd))
 	//Ensures "eksctl --help" presents eksctl anywhere as a command, but adds no subcommands since we invoke the binary.
 	rootCmd.AddCommand(cmdutils.NewVerbCmd("anywhere", "EKS anywhere", ""))
+	// Add MCP server command
+	rootCmd.AddCommand(mcpCmd(flagGrouping))
 
 	cmdutils.AddResourceCmd(flagGrouping, rootCmd, infoCmd)
 	cmdutils.AddResourceCmd(flagGrouping, rootCmd, versionCmd)
