@@ -18,15 +18,12 @@ The implementation uses a dynamic parameter discovery approach:
 
 3. **Dynamic Tool Registration**: Tools are registered with the MCP server using the discovered parameters.
 
-## Directory Structure
+## Files
 
-- `common/`: Contains shared utilities and the parameter discovery system
-  - `discovery.go`: Implements parameter extraction and caching
-  - `dynamic_tools.go`: Defines tool categories and registration helpers
-  - `eksctl.go`: Handles execution of eksctl commands
-
-- `dynamic/`: Contains the main tool registration logic
-  - `dynamic.go`: Registers all tools with the MCP server
+- `discovery.go`: Implements parameter extraction and caching
+- `dynamic.go`: Defines tool categories and registration helpers
+- `eksctl.go`: Handles execution of eksctl commands
+- `tools.go`: Main entry point for registering tools
 
 ## Special Cases
 
