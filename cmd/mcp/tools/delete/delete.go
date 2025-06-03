@@ -48,10 +48,31 @@ func RegisterDeleteClusterTool(s *server.MCPServer) {
 			mcp.Required(),
 		),
 		mcp.WithString("wait", 
-			mcp.Description("Wait for cluster deletion to complete before returning (recommended)"),
+			mcp.Description("Wait for deletion of all resources before exiting"),
 		),
 		mcp.WithString("force", 
-			mcp.Description("Force deletion even if there are still cluster resources"),
+			mcp.Description("Force deletion to continue when errors occur"),
+		),
+		mcp.WithString("disable-nodegroup-eviction", 
+			mcp.Description("Force drain to use delete, even if eviction is supported"),
+		),
+		mcp.WithString("pod-eviction-wait-period", 
+			mcp.Description("Duration to wait after failing to evict a pod (default: 10s)"),
+		),
+		mcp.WithString("parallel", 
+			mcp.Description("Number of nodes to drain in parallel (default: 1, max: 25)"),
+		),
+		mcp.WithString("timeout", 
+			mcp.Description("Maximum waiting time for operations (default: 25m0s)"),
+		),
+		mcp.WithString("profile", 
+			mcp.Description("AWS credentials profile to use"),
+		),
+		mcp.WithString("cfn-role-arn", 
+			mcp.Description("IAM role used by CloudFormation to call AWS API"),
+		),
+		mcp.WithString("cfn-disable-rollback", 
+			mcp.Description("Disable CloudFormation stack rollback on failure"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name := request.GetString("name", "")
@@ -96,6 +117,12 @@ func RegisterDeleteNodegroupTool(s *server.MCPServer) {
 		mcp.WithString("drain", 
 			mcp.Description("Drain the nodegroup before deletion (evicts all pods)"),
 		),
+		mcp.WithString("disable-eviction", 
+			mcp.Description("Force drain to use delete, even if eviction is supported"),
+		),
+		mcp.WithString("parallel", 
+			mcp.Description("Number of nodes to drain in parallel (default: 1)"),
+		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name := request.GetString("name", "")
 		region := request.GetString("region", "")
@@ -137,6 +164,9 @@ func RegisterDeleteIAMServiceAccountTool(s *server.MCPServer) {
 			mcp.Description("Kubernetes service account name"),
 			mcp.Required(),
 		),
+		mcp.WithString("wait", 
+			mcp.Description("Wait for deletion to complete before returning"),
+		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name := request.GetString("name", "")
 		region := request.GetString("region", "")
@@ -175,6 +205,9 @@ func RegisterDeleteIAMIdentityMappingTool(s *server.MCPServer) {
 			mcp.Description("Kubernetes username"),
 			mcp.Required(),
 		),
+		mcp.WithString("all", 
+			mcp.Description("Delete all IAM identity mappings"),
+		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name := request.GetString("name", "")
 		region := request.GetString("region", "")
@@ -208,6 +241,9 @@ func RegisterDeleteFargateProfileTool(s *server.MCPServer) {
 		mcp.WithString("profile", 
 			mcp.Description("Fargate profile name"),
 			mcp.Required(),
+		),
+		mcp.WithString("wait", 
+			mcp.Description("Wait for deletion to complete before returning"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name := request.GetString("name", "")
@@ -243,6 +279,12 @@ func RegisterDeleteAddonTool(s *server.MCPServer) {
 		),
 		mcp.WithString("preserve", 
 			mcp.Description("Preserve the resources created by the addon"),
+		),
+		mcp.WithString("wait", 
+			mcp.Description("Wait for deletion to complete before returning"),
+		),
+		mcp.WithString("force", 
+			mcp.Description("Force deletion even if there are errors"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name := request.GetString("name", "")
@@ -281,6 +323,9 @@ func RegisterDeleteAccessEntryTool(s *server.MCPServer) {
 			mcp.Description("ARN of the principal"),
 			mcp.Required(),
 		),
+		mcp.WithString("wait", 
+			mcp.Description("Wait for deletion to complete before returning"),
+		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name := request.GetString("name", "")
 		region := request.GetString("region", "")
@@ -316,6 +361,9 @@ func RegisterDeletePodIdentityAssociationTool(s *server.MCPServer) {
 		mcp.WithString("service-account", 
 			mcp.Description("Kubernetes service account name"),
 			mcp.Required(),
+		),
+		mcp.WithString("wait", 
+			mcp.Description("Wait for deletion to complete before returning"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name := request.GetString("name", "")
