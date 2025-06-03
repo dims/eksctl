@@ -7,29 +7,26 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-
-
 // RegisterTools registers all register tools with the MCP server
 func RegisterTools(s *server.MCPServer) {
 	// Register register cluster command
 	RegisterRegisterClusterTool(s)
 }
 
-
 // RegisterRegisterClusterTool registers the eksctl_register_cluster tool with the MCP server
 func RegisterRegisterClusterTool(s *server.MCPServer) {
 	s.AddTool(mcp.NewTool(
 		"eksctl_register_cluster",
 		mcp.WithDescription("Register a non-EKS cluster"),
-		mcp.WithString("name", 
+		mcp.WithString("name",
 			mcp.Description("Cluster name"),
 			mcp.Required(),
 		),
-		mcp.WithString("region", 
+		mcp.WithString("region",
 			mcp.Description("AWS region"),
 			mcp.Required(),
 		),
-		mcp.WithString("provider", 
+		mcp.WithString("provider",
 			mcp.Description("Kubernetes provider"),
 			mcp.Required(),
 		),
@@ -37,11 +34,11 @@ func RegisterRegisterClusterTool(s *server.MCPServer) {
 		name := request.GetString("name", "")
 		region := request.GetString("region", "")
 		provider := request.GetString("provider", "")
-		
+
 		if name == "" || region == "" || provider == "" {
 			return mcp.NewToolResultError("name, region, and provider are required"), nil
 		}
-		
+
 		return mcp.NewToolResultText(fmt.Sprintf("Registering %s cluster %s in region %s (stub implementation)", provider, name, region)), nil
 	})
 }

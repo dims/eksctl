@@ -11,12 +11,12 @@ func RegisterTools(s *server.MCPServer) {
 	s.AddTool(mcp.NewTool(
 		"eksctl_help",
 		mcp.WithDescription("Help about any command"),
-		mcp.WithString("command", 
+		mcp.WithString("command",
 			mcp.Description("Command to get help for"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		command := request.GetString("command", "")
-		
+
 		if command == "" {
 			// General help
 			return mcp.NewToolResultText(`eksctl - The official CLI for Amazon EKS
@@ -51,7 +51,7 @@ Flags:
 
 Use "eksctl [command] --help" for more information about a command.`), nil
 		}
-		
+
 		// Command-specific help
 		switch command {
 		case "create":

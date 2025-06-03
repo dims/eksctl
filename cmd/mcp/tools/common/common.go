@@ -33,11 +33,11 @@ func ValidateRequiredParams(params map[string]string) error {
 			missingParams = append(missingParams, name)
 		}
 	}
-	
+
 	if len(missingParams) > 0 {
 		return fmt.Errorf("missing required parameters: %v", missingParams)
 	}
-	
+
 	return nil
 }
 
@@ -46,7 +46,7 @@ func CreateStubResponse(ctx context.Context, command string, params map[string]s
 	if err := ValidateRequiredParams(params); err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
-	
+
 	// Build a message that includes all parameters
 	message := fmt.Sprintf("Command: %s\n", command)
 	message += "Parameters:\n"
@@ -54,6 +54,6 @@ func CreateStubResponse(ctx context.Context, command string, params map[string]s
 		message += fmt.Sprintf("  %s: %s\n", name, value)
 	}
 	message += "\nThis is a stub implementation. The actual command would perform the operation on AWS resources."
-	
+
 	return mcp.NewToolResultText(message), nil
 }

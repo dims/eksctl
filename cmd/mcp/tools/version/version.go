@@ -12,7 +12,7 @@ func RegisterTools(s *server.MCPServer) {
 	s.AddTool(mcp.NewTool(
 		"eksctl_version",
 		mcp.WithDescription("Output the version of eksctl"),
-		mcp.WithString("output", 
+		mcp.WithString("output",
 			mcp.Description("specifies the output format (valid option: json)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {

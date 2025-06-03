@@ -27,7 +27,7 @@ import (
 func RegisterTools(s *server.MCPServer) {
 	// Register associate commands
 	associate.RegisterTools(s)
-	
+
 	// Register completion commands
 	completion.RegisterTools(s)
 
@@ -36,43 +36,43 @@ func RegisterTools(s *server.MCPServer) {
 
 	// Register delete commands
 	delete.RegisterTools(s)
-	
+
 	// Register deregister commands
 	deregister.RegisterTools(s)
-	
+
 	// Register disassociate commands
 	disassociate.RegisterTools(s)
-	
+
 	// Register drain commands
 	drain.RegisterTools(s)
-	
+
 	// Register enable commands
 	enable.RegisterTools(s)
 
 	// Register get commands
 	get.RegisterTools(s)
-	
+
 	// Register help command
 	help.RegisterTools(s)
-	
+
 	// Register info command
 	info.RegisterTools(s)
-	
+
 	// Register register commands
 	register.RegisterTools(s)
-	
+
 	// Register scale commands
 	scale.RegisterTools(s)
-	
+
 	// Register set commands
 	set.RegisterTools(s)
-	
+
 	// Register unset commands
 	unset.RegisterTools(s)
-	
+
 	// Register update commands
 	update.RegisterTools(s)
-	
+
 	// Register upgrade commands
 	upgrade.RegisterTools(s)
 
