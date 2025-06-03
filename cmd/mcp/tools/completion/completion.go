@@ -2,8 +2,10 @@ package completion
 
 import (
 	"context"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
 )
 
 // RegisterTools registers all completion tools with the MCP server
@@ -27,7 +29,7 @@ func RegisterCompletionBashTool(s *server.MCPServer) {
 		"eksctl_completion_bash",
 		mcp.WithDescription("Generate bash completion"),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return mcp.NewToolResultText("# Bash completion script for eksctl (stub implementation)"), nil
+		return common.ExecuteEksctlCommand(ctx, []string{"completion", "bash"})
 	})
 }
 
@@ -37,7 +39,7 @@ func RegisterCompletionFishTool(s *server.MCPServer) {
 		"eksctl_completion_fish",
 		mcp.WithDescription("Generate fish completion"),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return mcp.NewToolResultText("# Fish completion script for eksctl (stub implementation)"), nil
+		return common.ExecuteEksctlCommand(ctx, []string{"completion", "fish"})
 	})
 }
 
@@ -47,7 +49,7 @@ func RegisterCompletionPowershellTool(s *server.MCPServer) {
 		"eksctl_completion_powershell",
 		mcp.WithDescription("Generate powershell completion"),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return mcp.NewToolResultText("# PowerShell completion script for eksctl (stub implementation)"), nil
+		return common.ExecuteEksctlCommand(ctx, []string{"completion", "powershell"})
 	})
 }
 
@@ -57,6 +59,6 @@ func RegisterCompletionZshTool(s *server.MCPServer) {
 		"eksctl_completion_zsh",
 		mcp.WithDescription("Generate zsh completion"),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return mcp.NewToolResultText("# Zsh completion script for eksctl (stub implementation)"), nil
+		return common.ExecuteEksctlCommand(ctx, []string{"completion", "zsh"})
 	})
 }

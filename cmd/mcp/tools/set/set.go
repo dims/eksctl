@@ -2,9 +2,10 @@ package set
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
 )
 
 // RegisterTools registers all set tools with the MCP server
@@ -35,15 +36,6 @@ func RegisterSetLabelsTool(s *server.MCPServer) {
 			mcp.Required(),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		cluster := request.GetString("cluster", "")
-		region := request.GetString("region", "")
-		nodegroup := request.GetString("nodegroup", "")
-		labels := request.GetString("labels", "")
-
-		if cluster == "" || region == "" || nodegroup == "" || labels == "" {
-			return mcp.NewToolResultError("cluster, region, nodegroup, and labels are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Setting labels %s for nodegroup %s in cluster %s in region %s (stub implementation)", labels, nodegroup, cluster, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "set labels", request)
 	})
 }

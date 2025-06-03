@@ -2,9 +2,10 @@ package deregister
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
 )
 
 // RegisterTools registers all deregister tools with the MCP server
@@ -27,13 +28,6 @@ func RegisterDeregisterClusterTool(s *server.MCPServer) {
 			mcp.Required(),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-
-		if name == "" || region == "" {
-			return mcp.NewToolResultError("name and region are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Deregistering cluster %s in region %s (stub implementation)", name, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "deregister cluster", request)
 	})
 }

@@ -2,9 +2,10 @@ package utils
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
 )
 
 // RegisterTools registers all utils tools with the MCP server
@@ -63,14 +64,7 @@ func RegisterWriteKubeconfigTool(s *server.MCPServer) {
 			mcp.Description("Maximum waiting time for operations"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-
-		if name == "" || region == "" {
-			return mcp.NewToolResultError("name and region are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Writing kubeconfig for cluster %s in region %s (stub implementation)", name, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "utils write-kubeconfig", request)
 	})
 }
 
@@ -94,14 +88,7 @@ func RegisterDescribeStacksTool(s *server.MCPServer) {
 			mcp.Description("AWS credentials profile to use"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-
-		if name == "" || region == "" {
-			return mcp.NewToolResultError("name and region are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Describing CloudFormation stacks for cluster %s in region %s (stub implementation)", name, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "utils describe-stacks", request)
 	})
 }
 
@@ -128,14 +115,7 @@ func RegisterUpdateKubeProxyTool(s *server.MCPServer) {
 			mcp.Description("Maximum waiting time for operations"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-
-		if name == "" || region == "" {
-			return mcp.NewToolResultError("name and region are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Updating kube-proxy add-on for cluster %s in region %s (stub implementation)", name, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "utils update-kube-proxy", request)
 	})
 }
 
@@ -162,14 +142,7 @@ func RegisterUpdateAWSNodeTool(s *server.MCPServer) {
 			mcp.Description("Maximum waiting time for operations"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-
-		if name == "" || region == "" {
-			return mcp.NewToolResultError("name and region are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Updating aws-node add-on for cluster %s in region %s (stub implementation)", name, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "utils update-aws-node", request)
 	})
 }
 
@@ -196,14 +169,7 @@ func RegisterUpdateCoreDNSTool(s *server.MCPServer) {
 			mcp.Description("Maximum waiting time for operations"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-
-		if name == "" || region == "" {
-			return mcp.NewToolResultError("name and region are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Updating CoreDNS add-on for cluster %s in region %s (stub implementation)", name, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "utils update-coredns", request)
 	})
 }
 
@@ -230,13 +196,6 @@ func RegisterAssociateIAMOIDCProviderTool(s *server.MCPServer) {
 			mcp.Description("Maximum waiting time for operations"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-
-		if name == "" || region == "" {
-			return mcp.NewToolResultError("name and region are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Associating IAM OIDC provider for cluster %s in region %s (stub implementation)", name, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "utils associate-iam-oidc-provider", request)
 	})
 }

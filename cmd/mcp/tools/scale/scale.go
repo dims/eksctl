@@ -2,9 +2,10 @@ package scale
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
 )
 
 // RegisterTools registers all scale tools with the MCP server
@@ -40,14 +41,6 @@ func RegisterScaleNodegroupTool(s *server.MCPServer) {
 			mcp.Description("Maximum number of nodes"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		cluster := request.GetString("cluster", "")
-		region := request.GetString("region", "")
-		name := request.GetString("name", "")
-
-		if cluster == "" || region == "" || name == "" {
-			return mcp.NewToolResultError("cluster, region, and name are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Scaling nodegroup %s in cluster %s in region %s (stub implementation)", name, cluster, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "scale nodegroup", request)
 	})
 }

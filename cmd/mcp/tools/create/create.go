@@ -2,6 +2,7 @@ package create
 
 import (
 	"context"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
@@ -131,23 +132,7 @@ func RegisterCreateClusterTool(s *server.MCPServer) {
 			mcp.Description("Enable full access for alb-ingress-controller"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		version := request.GetString("version", "")
-
-		params := map[string]string{
-			"region": region,
-		}
-
-		if name != "" {
-			params["name"] = name
-		}
-
-		if version != "" {
-			params["version"] = version
-		}
-
-		return common.CreateStubResponse(ctx, "create cluster", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "create cluster", request)
 	})
 }
 
@@ -202,17 +187,7 @@ func RegisterCreateNodegroupTool(s *server.MCPServer) {
 			mcp.Description("Create a spot nodegroup (managed nodegroups only)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		nodegroupName := request.GetString("nodegroup-name", "")
-
-		params := map[string]string{
-			"name":           name,
-			"region":         region,
-			"nodegroup-name": nodegroupName,
-		}
-
-		return common.CreateStubResponse(ctx, "create nodegroup", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "create nodegroup", request)
 	})
 }
 
@@ -253,19 +228,7 @@ func RegisterCreateIAMServiceAccountTool(s *server.MCPServer) {
 			mcp.Description("Skip confirmation prompt"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		namespace := request.GetString("namespace", "")
-		serviceAccount := request.GetString("service-account", "")
-
-		params := map[string]string{
-			"name":            name,
-			"region":          region,
-			"namespace":       namespace,
-			"service-account": serviceAccount,
-		}
-
-		return common.CreateStubResponse(ctx, "create iamserviceaccount", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "create iamserviceaccount", request)
 	})
 }
 
@@ -297,24 +260,7 @@ func RegisterCreateIAMIdentityMappingTool(s *server.MCPServer) {
 			mcp.Description("Account ID to override the account in the ARN"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		arn := request.GetString("arn", "")
-		username := request.GetString("username", "")
-
-		params := map[string]string{
-			"name":     name,
-			"region":   region,
-			"arn":      arn,
-			"username": username,
-		}
-
-		group := request.GetString("group", "")
-		if group != "" {
-			params["group"] = group
-		}
-
-		return common.CreateStubResponse(ctx, "create iamidentitymapping", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "create iamidentitymapping", request)
 	})
 }
 
@@ -349,19 +295,7 @@ func RegisterCreateFargateProfileTool(s *server.MCPServer) {
 			mcp.Description("Tags for the Fargate profile (key=value)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		profileName := request.GetString("profile-name", "")
-		namespace := request.GetString("namespace", "")
-
-		params := map[string]string{
-			"name":         name,
-			"region":       region,
-			"profile-name": profileName,
-			"namespace":    namespace,
-		}
-
-		return common.CreateStubResponse(ctx, "create fargateprofile", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "create fargateprofile", request)
 	})
 }
 
@@ -404,22 +338,7 @@ func RegisterCreateAddonTool(s *server.MCPServer) {
 			mcp.Description("Resolve conflicts (none, overwrite, preserve)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		addon := request.GetString("addon", "")
-
-		params := map[string]string{
-			"name":   name,
-			"region": region,
-			"addon":  addon,
-		}
-
-		version := request.GetString("version", "")
-		if version != "" {
-			params["version"] = version
-		}
-
-		return common.CreateStubResponse(ctx, "create addon", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "create addon", request)
 	})
 }
 
@@ -453,22 +372,7 @@ func RegisterCreateAccessEntryTool(s *server.MCPServer) {
 			mcp.Description("Access scope (namespace or cluster)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		principalARN := request.GetString("principal-arn", "")
-
-		params := map[string]string{
-			"name":          name,
-			"region":        region,
-			"principal-arn": principalARN,
-		}
-
-		k8sGroups := request.GetString("kubernetes-groups", "")
-		if k8sGroups != "" {
-			params["kubernetes-groups"] = k8sGroups
-		}
-
-		return common.CreateStubResponse(ctx, "create accessentry", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "create accessentry", request)
 	})
 }
 
@@ -501,20 +405,6 @@ func RegisterCreatePodIdentityAssociationTool(s *server.MCPServer) {
 			mcp.Description("ARN of the cluster IAM role"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		namespace := request.GetString("namespace", "")
-		serviceAccount := request.GetString("service-account", "")
-		roleARN := request.GetString("role-arn", "")
-
-		params := map[string]string{
-			"name":            name,
-			"region":          region,
-			"namespace":       namespace,
-			"service-account": serviceAccount,
-			"role-arn":        roleARN,
-		}
-
-		return common.CreateStubResponse(ctx, "create podidentityassociation", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "create podidentityassociation", request)
 	})
 }

@@ -2,9 +2,10 @@ package drain
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
 )
 
 // RegisterTools registers all drain tools with the MCP server
@@ -37,14 +38,6 @@ func RegisterDrainNodegroupTool(s *server.MCPServer) {
 			mcp.Description("Number of nodes to drain in parallel"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		cluster := request.GetString("cluster", "")
-		region := request.GetString("region", "")
-		name := request.GetString("name", "")
-
-		if cluster == "" || region == "" || name == "" {
-			return mcp.NewToolResultError("cluster, region, and name are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Draining nodegroup %s in cluster %s in region %s (stub implementation)", name, cluster, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "drain nodegroup", request)
 	})
 }

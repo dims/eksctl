@@ -2,6 +2,7 @@ package delete
 
 import (
 	"context"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
@@ -75,25 +76,7 @@ func RegisterDeleteClusterTool(s *server.MCPServer) {
 			mcp.Description("Disable CloudFormation stack rollback on failure"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-
-		params := map[string]string{
-			"name":   name,
-			"region": region,
-		}
-
-		wait := request.GetString("wait", "")
-		if wait != "" {
-			params["wait"] = wait
-		}
-
-		force := request.GetString("force", "")
-		if force != "" {
-			params["force"] = force
-		}
-
-		return common.CreateStubResponse(ctx, "delete cluster", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "delete cluster", request)
 	})
 }
 
@@ -124,22 +107,7 @@ func RegisterDeleteNodegroupTool(s *server.MCPServer) {
 			mcp.Description("Number of nodes to drain in parallel (default: 1)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		nodegroup := request.GetString("nodegroup", "")
-
-		params := map[string]string{
-			"name":      name,
-			"region":    region,
-			"nodegroup": nodegroup,
-		}
-
-		drain := request.GetString("drain", "")
-		if drain != "" {
-			params["drain"] = drain
-		}
-
-		return common.CreateStubResponse(ctx, "delete nodegroup", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "delete nodegroup", request)
 	})
 }
 
@@ -168,19 +136,7 @@ func RegisterDeleteIAMServiceAccountTool(s *server.MCPServer) {
 			mcp.Description("Wait for deletion to complete before returning"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		namespace := request.GetString("namespace", "")
-		serviceAccount := request.GetString("service-account", "")
-
-		params := map[string]string{
-			"name":            name,
-			"region":          region,
-			"namespace":       namespace,
-			"service-account": serviceAccount,
-		}
-
-		return common.CreateStubResponse(ctx, "delete iamserviceaccount", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "delete iamserviceaccount", request)
 	})
 }
 
@@ -209,19 +165,7 @@ func RegisterDeleteIAMIdentityMappingTool(s *server.MCPServer) {
 			mcp.Description("Delete all IAM identity mappings"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		arn := request.GetString("arn", "")
-		username := request.GetString("username", "")
-
-		params := map[string]string{
-			"name":     name,
-			"region":   region,
-			"arn":      arn,
-			"username": username,
-		}
-
-		return common.CreateStubResponse(ctx, "delete iamidentitymapping", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "delete iamidentitymapping", request)
 	})
 }
 
@@ -246,17 +190,7 @@ func RegisterDeleteFargateProfileTool(s *server.MCPServer) {
 			mcp.Description("Wait for deletion to complete before returning"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		profile := request.GetString("profile", "")
-
-		params := map[string]string{
-			"name":    name,
-			"region":  region,
-			"profile": profile,
-		}
-
-		return common.CreateStubResponse(ctx, "delete fargateprofile", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "delete fargateprofile", request)
 	})
 }
 
@@ -287,22 +221,7 @@ func RegisterDeleteAddonTool(s *server.MCPServer) {
 			mcp.Description("Force deletion even if there are errors"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		addon := request.GetString("addon", "")
-
-		params := map[string]string{
-			"name":   name,
-			"region": region,
-			"addon":  addon,
-		}
-
-		preserve := request.GetString("preserve", "")
-		if preserve != "" {
-			params["preserve"] = preserve
-		}
-
-		return common.CreateStubResponse(ctx, "delete addon", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "delete addon", request)
 	})
 }
 
@@ -327,17 +246,7 @@ func RegisterDeleteAccessEntryTool(s *server.MCPServer) {
 			mcp.Description("Wait for deletion to complete before returning"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		principalARN := request.GetString("principal-arn", "")
-
-		params := map[string]string{
-			"name":          name,
-			"region":        region,
-			"principal-arn": principalARN,
-		}
-
-		return common.CreateStubResponse(ctx, "delete accessentry", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "delete accessentry", request)
 	})
 }
 
@@ -366,18 +275,6 @@ func RegisterDeletePodIdentityAssociationTool(s *server.MCPServer) {
 			mcp.Description("Wait for deletion to complete before returning"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		namespace := request.GetString("namespace", "")
-		serviceAccount := request.GetString("service-account", "")
-
-		params := map[string]string{
-			"name":            name,
-			"region":          region,
-			"namespace":       namespace,
-			"service-account": serviceAccount,
-		}
-
-		return common.CreateStubResponse(ctx, "delete podidentityassociation", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "delete podidentityassociation", request)
 	})
 }

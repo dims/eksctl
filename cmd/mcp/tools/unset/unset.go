@@ -2,10 +2,17 @@ package unset
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
 )
+
+// RegisterTools registers all unset tools with the MCP server
+func RegisterTools(s *server.MCPServer) {
+	// Register unset labels command
+	RegisterUnsetLabelsTool(s)
+}
 
 // RegisterUnsetLabelsTool registers the eksctl_unset_labels tool with the MCP server
 func RegisterUnsetLabelsTool(s *server.MCPServer) {
@@ -29,21 +36,6 @@ func RegisterUnsetLabelsTool(s *server.MCPServer) {
 			mcp.Required(),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		cluster := request.GetString("cluster", "")
-		region := request.GetString("region", "")
-		nodegroup := request.GetString("nodegroup", "")
-		labels := request.GetString("labels", "")
-
-		if cluster == "" || region == "" || nodegroup == "" || labels == "" {
-			return mcp.NewToolResultError("cluster, region, nodegroup, and labels are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Unsetting labels %s for nodegroup %s in cluster %s in region %s (stub implementation)", labels, nodegroup, cluster, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "unset labels", request)
 	})
-}
-
-// RegisterTools registers all unset tools with the MCP server
-func RegisterTools(s *server.MCPServer) {
-	// Register unset labels command
-	RegisterUnsetLabelsTool(s)
 }

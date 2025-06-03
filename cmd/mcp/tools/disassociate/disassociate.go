@@ -2,9 +2,10 @@ package disassociate
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
 )
 
 // RegisterTools registers all disassociate tools with the MCP server
@@ -31,14 +32,6 @@ func RegisterDisassociateIdentityProviderTool(s *server.MCPServer) {
 			mcp.Required(),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		idpName := request.GetString("identity-provider-name", "")
-
-		if name == "" || region == "" || idpName == "" {
-			return mcp.NewToolResultError("name, region, and identity-provider-name are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Disassociating identity provider %s from cluster %s in region %s (stub implementation)", idpName, name, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "disassociate identityprovider", request)
 	})
 }

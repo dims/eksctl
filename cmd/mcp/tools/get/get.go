@@ -2,6 +2,7 @@ package get
 
 import (
 	"context"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
@@ -50,23 +51,7 @@ func RegisterGetClusterTool(s *server.MCPServer) {
 			mcp.Description("Output format: table, json, or yaml (default: table)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		output := request.GetString("output", "")
-
-		params := map[string]string{
-			"region": region,
-		}
-
-		if name != "" {
-			params["name"] = name
-		}
-
-		if output != "" {
-			params["output"] = output
-		}
-
-		return common.CreateStubResponse(ctx, "get cluster", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "get cluster", request)
 	})
 }
 
@@ -90,25 +75,7 @@ func RegisterGetNodegroupTool(s *server.MCPServer) {
 			mcp.Description("Output format: table, json, or yaml (default: table)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		cluster := request.GetString("cluster", "")
-		region := request.GetString("region", "")
-		output := request.GetString("output", "")
-
-		params := map[string]string{
-			"cluster": cluster,
-			"region":  region,
-		}
-
-		if name != "" {
-			params["name"] = name
-		}
-
-		if output != "" {
-			params["output"] = output
-		}
-
-		return common.CreateStubResponse(ctx, "get nodegroup", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "get nodegroup", request)
 	})
 }
 
@@ -135,30 +102,7 @@ func RegisterGetIAMServiceAccountTool(s *server.MCPServer) {
 			mcp.Description("Output format: table, json, or yaml (default: table)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		cluster := request.GetString("cluster", "")
-		region := request.GetString("region", "")
-		namespace := request.GetString("namespace", "")
-		output := request.GetString("output", "")
-
-		params := map[string]string{
-			"cluster": cluster,
-			"region":  region,
-		}
-
-		if name != "" {
-			params["name"] = name
-		}
-
-		if namespace != "" {
-			params["namespace"] = namespace
-		}
-
-		if output != "" {
-			params["output"] = output
-		}
-
-		return common.CreateStubResponse(ctx, "get iamserviceaccount", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "get iamserviceaccount", request)
 	})
 }
 
@@ -182,25 +126,7 @@ func RegisterGetIAMIdentityMappingTool(s *server.MCPServer) {
 			mcp.Description("Output format: table, json, or yaml (default: table)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		cluster := request.GetString("cluster", "")
-		region := request.GetString("region", "")
-		arn := request.GetString("arn", "")
-		output := request.GetString("output", "")
-
-		params := map[string]string{
-			"cluster": cluster,
-			"region":  region,
-		}
-
-		if arn != "" {
-			params["arn"] = arn
-		}
-
-		if output != "" {
-			params["output"] = output
-		}
-
-		return common.CreateStubResponse(ctx, "get iamidentitymapping", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "get iamidentitymapping", request)
 	})
 }
 
@@ -224,25 +150,7 @@ func RegisterGetFargateProfileTool(s *server.MCPServer) {
 			mcp.Description("Output format: table, json, or yaml (default: table)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		cluster := request.GetString("cluster", "")
-		region := request.GetString("region", "")
-		output := request.GetString("output", "")
-
-		params := map[string]string{
-			"cluster": cluster,
-			"region":  region,
-		}
-
-		if name != "" {
-			params["name"] = name
-		}
-
-		if output != "" {
-			params["output"] = output
-		}
-
-		return common.CreateStubResponse(ctx, "get fargateprofile", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "get fargateprofile", request)
 	})
 }
 
@@ -266,25 +174,7 @@ func RegisterGetAddonTool(s *server.MCPServer) {
 			mcp.Description("Output format: table, json, or yaml (default: table)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		cluster := request.GetString("cluster", "")
-		region := request.GetString("region", "")
-		output := request.GetString("output", "")
-
-		params := map[string]string{
-			"cluster": cluster,
-			"region":  region,
-		}
-
-		if name != "" {
-			params["name"] = name
-		}
-
-		if output != "" {
-			params["output"] = output
-		}
-
-		return common.CreateStubResponse(ctx, "get addon", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "get addon", request)
 	})
 }
 
@@ -308,25 +198,7 @@ func RegisterGetAccessEntryTool(s *server.MCPServer) {
 			mcp.Description("Output format: table, json, or yaml (default: table)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		cluster := request.GetString("cluster", "")
-		region := request.GetString("region", "")
-		principalARN := request.GetString("principal-arn", "")
-		output := request.GetString("output", "")
-
-		params := map[string]string{
-			"cluster": cluster,
-			"region":  region,
-		}
-
-		if principalARN != "" {
-			params["principal-arn"] = principalARN
-		}
-
-		if output != "" {
-			params["output"] = output
-		}
-
-		return common.CreateStubResponse(ctx, "get accessentry", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "get accessentry", request)
 	})
 }
 
@@ -353,29 +225,6 @@ func RegisterGetPodIdentityAssociationTool(s *server.MCPServer) {
 			mcp.Description("Output format: table, json, or yaml (default: table)"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		cluster := request.GetString("cluster", "")
-		region := request.GetString("region", "")
-		namespace := request.GetString("namespace", "")
-		serviceAccount := request.GetString("service-account", "")
-		output := request.GetString("output", "")
-
-		params := map[string]string{
-			"cluster": cluster,
-			"region":  region,
-		}
-
-		if namespace != "" {
-			params["namespace"] = namespace
-		}
-
-		if serviceAccount != "" {
-			params["service-account"] = serviceAccount
-		}
-
-		if output != "" {
-			params["output"] = output
-		}
-
-		return common.CreateStubResponse(ctx, "get podidentityassociation", params)
+		return common.ExecuteEksctlCommandFromRequest(ctx, "get podidentityassociation", request)
 	})
 }

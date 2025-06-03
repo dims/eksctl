@@ -2,6 +2,7 @@ package tools
 
 import (
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/weaveworks/eksctl/cmd/mcp/tools/anywhere"
 	"github.com/weaveworks/eksctl/cmd/mcp/tools/associate"
 	"github.com/weaveworks/eksctl/cmd/mcp/tools/completion"
 	"github.com/weaveworks/eksctl/cmd/mcp/tools/create"
@@ -81,4 +82,7 @@ func RegisterTools(s *server.MCPServer) {
 
 	// Register version command
 	version.RegisterTools(s)
+
+	// Register anywhere command
+	anywhere.RegisterTools(s)
 }

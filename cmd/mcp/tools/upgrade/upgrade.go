@@ -2,10 +2,20 @@ package upgrade
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
 )
+
+// RegisterTools registers all upgrade tools with the MCP server
+func RegisterTools(s *server.MCPServer) {
+	// Register upgrade cluster command
+	RegisterUpgradeClusterTool(s)
+
+	// Register upgrade nodegroup command
+	RegisterUpgradeNodegroupTool(s)
+}
 
 // RegisterUpgradeClusterTool registers the eksctl_upgrade_cluster tool with the MCP server
 func RegisterUpgradeClusterTool(s *server.MCPServer) {
@@ -28,15 +38,7 @@ func RegisterUpgradeClusterTool(s *server.MCPServer) {
 			mcp.Description("Skip confirmation prompt"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		version := request.GetString("version", "")
-
-		if name == "" || region == "" || version == "" {
-			return mcp.NewToolResultError("name, region, and version are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Upgrading cluster %s in region %s to version %s (stub implementation)", name, region, version)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "upgrade cluster", request)
 	})
 }
 
@@ -61,23 +63,6 @@ func RegisterUpgradeNodegroupTool(s *server.MCPServer) {
 			mcp.Description("Kubernetes version"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		nodegroup := request.GetString("nodegroup", "")
-
-		if name == "" || region == "" || nodegroup == "" {
-			return mcp.NewToolResultError("name, region, and nodegroup are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Upgrading nodegroup %s in cluster %s in region %s (stub implementation)", nodegroup, name, region)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "upgrade nodegroup", request)
 	})
-}
-
-// RegisterTools registers all upgrade tools with the MCP server
-func RegisterTools(s *server.MCPServer) {
-	// Register upgrade cluster command
-	RegisterUpgradeClusterTool(s)
-
-	// Register upgrade nodegroup command
-	RegisterUpgradeNodegroupTool(s)
 }

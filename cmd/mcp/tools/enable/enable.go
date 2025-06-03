@@ -2,9 +2,10 @@ package enable
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/weaveworks/eksctl/cmd/mcp/tools/common"
 )
 
 // RegisterTools registers all enable tools with the MCP server
@@ -37,14 +38,6 @@ func RegisterEnableFluxTool(s *server.MCPServer) {
 			mcp.Description("Git path"),
 		),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name := request.GetString("name", "")
-		region := request.GetString("region", "")
-		gitUrl := request.GetString("git-url", "")
-
-		if name == "" || region == "" || gitUrl == "" {
-			return mcp.NewToolResultError("name, region, and git-url are required"), nil
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Enabling Flux for cluster %s in region %s with git repository %s (stub implementation)", name, region, gitUrl)), nil
+		return common.ExecuteEksctlCommandFromRequest(ctx, "enable flux", request)
 	})
 }
