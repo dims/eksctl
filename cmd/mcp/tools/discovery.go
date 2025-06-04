@@ -249,7 +249,19 @@ func extractCommandDescriptionFromHelp(helpOutput string) string {
 }
 
 // DiscoverCommandParameters extracts parameter information from eksctl help and completion
-func DiscoverCommandParameters(command string) (CommandInfo, error) {
+// with an optional recursion depth limit
+func DiscoverCommandParameters(command string, depth ...int) (CommandInfo, error) {
+	// Default depth is 0, meaning no recursion limit
+	currentDepth := 0
+	maxDepth := 2 // Default max depth of 2 (eksctl -> create -> cluster)
+
+	// If depth is provided, use it
+	if len(depth) > 0 {
+		currentDepth = depth[0]
+	}
+	if len(depth) > 1 {
+		maxDepth = depth[1]
+	}
 	reg := getRegistry()
 
 	// Check if we already have cached info for this command
@@ -355,6 +367,48 @@ func DiscoverCommandParameters(command string) (CommandInfo, error) {
 		}
 	}
 
+	// Look for subcommands in the help output
+	subcommandPattern := regexp.MustCompile(`(?m)^\s+([a-zA-Z0-9-]+)\s+(.+?)$`)
+	subcommandMatches := subcommandPattern.FindAllStringSubmatch(helpOutput, -1)
+
+	// Process subcommands and recursively get their parameters
+	for _, match := range subcommandMatches {
+		if len(match) >= 3 {
+			subcommandName := match[1]
+			// Skip if it's a flag (starts with -) or common help text
+			if strings.HasPrefix(subcommandName, "-") ||
+				subcommandName == "help" ||
+				subcommandName == "version" ||
+				subcommandName == "flags:" ||
+				subcommandName == "commands:" ||
+				subcommandName == "args:" {
+				continue
+			}
+
+			// Form the full subcommand
+			subcommand := command + " " + subcommandName
+
+			// Only recurse if we haven't reached the maximum depth
+			if currentDepth < maxDepth {
+				// Recursively get parameters for this subcommand with incremented depth
+				subcommandInfo, err := DiscoverCommandParameters(subcommand, currentDepth+1, maxDepth)
+				if err == nil {
+					// Enhance the description with subcommand information
+					if info.Description == "" {
+						info.Description = "Parent command for various subcommands"
+					}
+
+					// Add subcommand parameters to the parent command's description
+					info.Description += fmt.Sprintf("\n\nSubcommand '%s': %s",
+						subcommandName, subcommandInfo.Description)
+
+					// Optionally, we could also merge parameters, but that might be confusing
+					// Instead, we're just enhancing the description
+				}
+			}
+		}
+	}
+
 	// Convert map to slice
 	for _, param := range paramMap {
 		info.Parameters = append(info.Parameters, param)
@@ -379,7 +433,7 @@ func DiscoverCommandParameters(command string) (CommandInfo, error) {
 // RegisterDynamicTool registers a tool with auto-discovered parameters
 func RegisterDynamicTool(s *server.MCPServer, toolName, description, command string) error {
 	// Discover parameters
-	info, err := DiscoverCommandParameters(command)
+	info, err := DiscoverCommandParameters(command, 0, 2)
 	if err != nil {
 		return err
 	}
@@ -455,7 +509,7 @@ func RefreshCommandCache() error {
 
 	// Discover parameters for each command
 	for _, cmd := range commands {
-		_, err := DiscoverCommandParameters(cmd)
+		_, err := DiscoverCommandParameters(cmd, 0, 2)
 		if err != nil {
 			// Log error but continue with other commands
 			fmt.Printf("Error discovering parameters for %s: %v\n", cmd, err)
