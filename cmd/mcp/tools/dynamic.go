@@ -249,12 +249,12 @@ func RegisterUtilityTools(s *server.MCPServer) {
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("Failed to list commands: %v", err)), nil
 		}
-		
+
 		result := "Available eksctl commands:\n\n"
 		for _, cmd := range commands {
 			result += fmt.Sprintf("- %s\n", cmd)
 		}
-		
+
 		return mcp.NewToolResultText(result), nil
 	})
 
@@ -271,16 +271,16 @@ func RegisterUtilityTools(s *server.MCPServer) {
 		if command == "" {
 			return mcp.NewToolResultError("Command is required"), nil
 		}
-		
+
 		info, err := DiscoverCommandParameters(command)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("Failed to get command info: %v", err)), nil
 		}
-		
+
 		result := fmt.Sprintf("Command: %s\n", info.Command)
 		result += fmt.Sprintf("Description: %s\n\n", info.Description)
 		result += "Parameters:\n"
-		
+
 		for _, param := range info.Parameters {
 			result += fmt.Sprintf("  --%s\n", param.Name)
 			result += fmt.Sprintf("    Description: %s\n", param.Description)
@@ -293,7 +293,7 @@ func RegisterUtilityTools(s *server.MCPServer) {
 			}
 			result += "\n"
 		}
-		
+
 		return mcp.NewToolResultText(result), nil
 	})
 

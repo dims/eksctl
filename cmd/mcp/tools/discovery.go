@@ -170,20 +170,20 @@ func extractCommandsFromCompletion(completionScript string) []string {
 func extractFlagsFromCompletion(completionScript string) (map[string][]string, map[string][]string) {
 	// Map to store command -> flags
 	commandFlags := make(map[string][]string)
-	
+
 	// Map to store flag -> choices
 	flagChoices := make(map[string][]string)
-	
+
 	// Look for flag patterns in the completion script
 	// This regex looks for lines that define flags for specific commands
 	cmdFlagPattern := regexp.MustCompile(`(?m)case \$prev in\s+(--[a-zA-Z0-9-]+)\)\s+case \$\{words\[0\]\} in\s+(.*?)\s+;;`)
 	matches := cmdFlagPattern.FindAllStringSubmatch(completionScript, -1)
-	
+
 	for _, match := range matches {
 		if len(match) >= 3 {
 			flag := match[1]
 			commands := strings.Split(match[2], "|")
-			
+
 			for _, cmd := range commands {
 				cmd = strings.TrimSpace(cmd)
 				if cmd != "" {
@@ -195,11 +195,11 @@ func extractFlagsFromCompletion(completionScript string) (map[string][]string, m
 			}
 		}
 	}
-	
+
 	// Also look for flag choices (enum values)
 	flagChoicesPattern := regexp.MustCompile(`(?m)case \$\{words\[c\]\} in\s+(--[a-zA-Z0-9-]+)\)\s+COMPREPLY=\(\$\(compgen -W "(.*?)" -- \$cur\)\)`)
 	choicesMatches := flagChoicesPattern.FindAllStringSubmatch(completionScript, -1)
-	
+
 	for _, match := range choicesMatches {
 		if len(match) >= 3 {
 			flag := match[1]
@@ -207,11 +207,11 @@ func extractFlagsFromCompletion(completionScript string) (map[string][]string, m
 			flagChoices[flag] = choices
 		}
 	}
-	
+
 	// Also look for boolean flags (flags that don't expect values)
 	boolFlagPattern := regexp.MustCompile(`(?m)flags=\("([^"]+)"\)`)
 	boolMatches := boolFlagPattern.FindAllStringSubmatch(completionScript, -1)
-	
+
 	for _, match := range boolMatches {
 		if len(match) >= 2 {
 			flags := strings.Split(match[1], " ")
@@ -225,7 +225,7 @@ func extractFlagsFromCompletion(completionScript string) (map[string][]string, m
 			}
 		}
 	}
-	
+
 	return commandFlags, flagChoices
 }
 
@@ -234,7 +234,7 @@ func extractCommandDescriptionFromHelp(helpOutput string) string {
 	// Try to find a description line
 	descPattern := regexp.MustCompile(`(?m)^(.+)$`)
 	matches := descPattern.FindAllStringSubmatch(helpOutput, 3) // Look at first few lines
-	
+
 	for _, match := range matches {
 		if len(match) >= 2 {
 			line := strings.TrimSpace(match[1])
@@ -244,14 +244,14 @@ func extractCommandDescriptionFromHelp(helpOutput string) string {
 			}
 		}
 	}
-	
+
 	return ""
 }
 
 // DiscoverCommandParameters extracts parameter information from eksctl help and completion
 func DiscoverCommandParameters(command string) (CommandInfo, error) {
 	reg := getRegistry()
-	
+
 	// Check if we already have cached info for this command
 	reg.mutex.RLock()
 	if info, exists := reg.Commands[command]; exists && time.Since(info.Timestamp) < cacheExpiration {
@@ -259,63 +259,63 @@ func DiscoverCommandParameters(command string) (CommandInfo, error) {
 		return info, nil
 	}
 	reg.mutex.RUnlock()
-	
+
 	// Get bash completion script
 	completionScript, err := getCompletionScript()
 	if err != nil {
 		return CommandInfo{}, err
 	}
-	
+
 	commandFlags, flagChoices := extractFlagsFromCompletion(completionScript)
-	
+
 	// Run eksctl help for the command
 	helpCmd := exec.Command("eksctl", append(strings.Split(command, " "), "--help")...)
 	var helpOut, helpErr bytes.Buffer
 	helpCmd.Stdout = &helpOut
 	helpCmd.Stderr = &helpErr
-	
+
 	if err := helpCmd.Run(); err != nil {
 		return CommandInfo{}, fmt.Errorf("failed to get help for command %s: %w", command, err)
 	}
-	
+
 	helpOutput := helpOut.String()
-	
+
 	// Extract command description
 	description := extractCommandDescriptionFromHelp(helpOutput)
-	
+
 	// Parse the help output to extract parameters
 	info := CommandInfo{
 		Command:     command,
 		Description: description,
 		Timestamp:   time.Now(),
 	}
-	
+
 	// Regular expression to match parameter descriptions in help output
 	flagPattern := regexp.MustCompile(`(?m)^\s+--([a-zA-Z0-9-]+)\s+(.+?)(?:\s+\(required\))?$`)
 	matches := flagPattern.FindAllStringSubmatch(helpOutput, -1)
-	
+
 	// Create a map to store parameter info
 	paramMap := make(map[string]ParameterInfo)
-	
+
 	// Process flags from help output
 	for _, match := range matches {
 		if len(match) >= 3 {
 			name := match[1]
 			description := strings.TrimSpace(match[2])
 			required := strings.Contains(match[0], "(required)")
-			
+
 			// Determine parameter type based on name or description
 			paramType := "string"
-			if strings.Contains(name, "enable") || 
-			   strings.Contains(name, "disable") || 
-			   strings.Contains(name, "force") || 
-			   strings.Contains(name, "approve") ||
-			   strings.Contains(description, "Toggle") ||
-			   strings.Contains(description, "Enable") ||
-			   strings.Contains(description, "Disable") {
+			if strings.Contains(name, "enable") ||
+				strings.Contains(name, "disable") ||
+				strings.Contains(name, "force") ||
+				strings.Contains(name, "approve") ||
+				strings.Contains(description, "Toggle") ||
+				strings.Contains(description, "Enable") ||
+				strings.Contains(description, "Disable") {
 				paramType = "boolean"
 			}
-			
+
 			paramMap[name] = ParameterInfo{
 				Name:        name,
 				Description: description,
@@ -324,17 +324,17 @@ func DiscoverCommandParameters(command string) (CommandInfo, error) {
 			}
 		}
 	}
-	
+
 	// Enhance with information from completion script
 	// This can help identify boolean flags and enum values
 	cmdParts := strings.Split(command, " ")
 	cmdName := cmdParts[len(cmdParts)-1]
-	
+
 	if flags, exists := commandFlags[cmdName]; exists {
 		for _, flag := range flags {
 			// Strip leading "--"
 			flagName := strings.TrimPrefix(flag, "--")
-			
+
 			// If we already have this parameter from help, enhance it
 			if param, ok := paramMap[flagName]; ok {
 				// Check if this flag has predefined choices
@@ -354,74 +354,26 @@ func DiscoverCommandParameters(command string) (CommandInfo, error) {
 			}
 		}
 	}
-	
+
 	// Convert map to slice
 	for _, param := range paramMap {
 		info.Parameters = append(info.Parameters, param)
 	}
-	
+
 	// Sort parameters for consistent output
 	sort.Slice(info.Parameters, func(i, j int) bool {
 		return info.Parameters[i].Name < info.Parameters[j].Name
 	})
-	
+
 	// Cache the result
 	reg.mutex.Lock()
 	reg.Commands[command] = info
 	reg.mutex.Unlock()
-	
+
 	// Save cache asynchronously
 	go reg.saveToCache()
-	
-	return info, nil
-}
 
-// RegisterDynamicToolWithCustomHandler registers a tool with auto-discovered parameters and a custom handler
-func RegisterDynamicToolWithCustomHandler(
-	s *server.MCPServer, 
-	toolName, 
-	description, 
-	command string, 
-	handler func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error),
-) error {
-	// Discover parameters
-	info, err := DiscoverCommandParameters(command)
-	if err != nil {
-		return err
-	}
-	
-	// If no description was provided, use the one from the command
-	if description == "" {
-		description = info.Description
-	}
-	
-	// Create the tool with basic description
-	toolOptions := []mcp.ToolOption{mcp.WithDescription(description)}
-	
-	// Add parameters based on their type
-	for _, param := range info.Parameters {
-		if param.Type == "boolean" {
-			toolOptions = append(toolOptions, mcp.WithBoolean(param.Name, mcp.Description(param.Description)))
-		} else {
-			// Default to string type
-			stringOpts := []mcp.PropertyOption{mcp.Description(param.Description)}
-			if param.Required {
-				stringOpts = append(stringOpts, mcp.Required())
-			}
-			if len(param.Choices) > 0 {
-				stringOpts = append(stringOpts, mcp.Enum(param.Choices...))
-			}
-			toolOptions = append(toolOptions, mcp.WithString(param.Name, stringOpts...))
-		}
-	}
-	
-	// Create the tool with all options
-	tool := mcp.NewTool(toolName, toolOptions...)
-	
-	// Register the tool with the custom handler
-	s.AddTool(tool, handler)
-	
-	return nil
+	return info, nil
 }
 
 // RegisterDynamicTool registers a tool with auto-discovered parameters
@@ -431,15 +383,15 @@ func RegisterDynamicTool(s *server.MCPServer, toolName, description, command str
 	if err != nil {
 		return err
 	}
-	
+
 	// If no description was provided, use the one from the command
 	if description == "" {
 		description = info.Description
 	}
-	
+
 	// Create the tool with basic description
 	toolOptions := []mcp.ToolOption{mcp.WithDescription(description)}
-	
+
 	// Add parameters based on their type
 	for _, param := range info.Parameters {
 		if param.Type == "boolean" {
@@ -456,15 +408,15 @@ func RegisterDynamicTool(s *server.MCPServer, toolName, description, command str
 			toolOptions = append(toolOptions, mcp.WithString(param.Name, stringOpts...))
 		}
 	}
-	
+
 	// Create the tool with all options
 	tool := mcp.NewTool(toolName, toolOptions...)
-	
+
 	// Register the tool
 	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		return ExecuteEksctlCommandFromRequest(ctx, command, request)
 	})
-	
+
 	return nil
 }
 
@@ -475,32 +427,32 @@ func ListAvailableCommands() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return extractCommandsFromCompletion(completionScript), nil
 }
 
 // RefreshCommandCache forces a refresh of the command cache
 func RefreshCommandCache() error {
 	reg := getRegistry()
-	
+
 	// Clear existing cache
 	reg.mutex.Lock()
 	reg.Commands = make(map[string]CommandInfo)
 	reg.CompletionTS = time.Time{}
 	reg.mutex.Unlock()
-	
+
 	// Get fresh completion script
 	_, err := getCompletionScript()
 	if err != nil {
 		return err
 	}
-	
+
 	// Get list of commands
 	commands, err := ListAvailableCommands()
 	if err != nil {
 		return err
 	}
-	
+
 	// Discover parameters for each command
 	for _, cmd := range commands {
 		_, err := DiscoverCommandParameters(cmd)
@@ -509,7 +461,7 @@ func RefreshCommandCache() error {
 			fmt.Printf("Error discovering parameters for %s: %v\n", cmd, err)
 		}
 	}
-	
+
 	return reg.saveToCache()
 }
 
@@ -518,11 +470,11 @@ func GetCachedCommands() []CommandInfo {
 	reg := getRegistry()
 	reg.mutex.RLock()
 	defer reg.mutex.RUnlock()
-	
+
 	var commands []CommandInfo
 	for _, info := range reg.Commands {
 		commands = append(commands, info)
 	}
-	
+
 	return commands
 }
