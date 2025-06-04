@@ -5,34 +5,92 @@ import (
 	"context"
 	"os/exec"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
 // ExecuteEksctlCommand executes the eksctl binary with the given arguments
 func ExecuteEksctlCommand(ctx context.Context, args []string) (*mcp.CallToolResult, error) {
-	// Create the command
-	cmd := exec.CommandContext(ctx, "eksctl", args...)
+	// Create a context with a 45-second timeout for output collection
+	timeoutCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	defer cancel()
 
-	// Capture stdout and stderr
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	// Create the command with the parent context to avoid killing the process
+	cmd := exec.Command("eksctl", args...)
 
-	// Execute the command
-	err := cmd.Run()
-
-	// If there was an error, return the stderr output
+	// Set up pipes to capture output
+	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		errMsg := stderr.String()
-		if errMsg == "" {
-			errMsg = err.Error()
-		}
-		return mcp.NewToolResultError(errMsg), nil
+		return mcp.NewToolResultError("Failed to create stdout pipe: " + err.Error()), nil
 	}
 
-	// Return the stdout output
-	return mcp.NewToolResultText(stdout.String()), nil
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return mcp.NewToolResultError("Failed to create stderr pipe: " + err.Error()), nil
+	}
+
+	// Buffers to store output
+	var stdoutBuf, stderrBuf bytes.Buffer
+	
+	// Create a WaitGroup to wait for the goroutines to finish
+	var wg sync.WaitGroup
+	wg.Add(2)
+	
+	// Start goroutines to read from pipes
+	go func() {
+		defer wg.Done()
+		_, _ = stdoutBuf.ReadFrom(stdoutPipe)
+	}()
+	
+	go func() {
+		defer wg.Done()
+		_, _ = stderrBuf.ReadFrom(stderrPipe)
+	}()
+
+	// Start the command in a goroutine
+	errChan := make(chan error, 1)
+	go func() {
+		// Start the command
+		if err := cmd.Start(); err != nil {
+			errChan <- err
+			return
+		}
+		
+		// Wait for the command to complete
+		errChan <- cmd.Wait()
+	}()
+
+	// Wait for either the command to finish or the context to timeout
+	var cmdErr error
+	select {
+	case cmdErr = <-errChan:
+		// Command completed
+		wg.Wait() // Wait for output goroutines to finish
+		
+		// If there was an error, return the stderr output
+		if cmdErr != nil {
+			errMsg := stderrBuf.String()
+			if errMsg == "" {
+				errMsg = cmdErr.Error()
+			}
+			return mcp.NewToolResultError(errMsg), nil
+		}
+		
+		// Return the stdout output
+		return mcp.NewToolResultText(stdoutBuf.String()), nil
+		
+	case <-timeoutCtx.Done():
+		if timeoutCtx.Err() == context.DeadlineExceeded {
+			// Command is still running but we've reached our response time limit
+			// Return the stdout collected so far without killing the process
+			return mcp.NewToolResultText(stdoutBuf.String() + "\n\n[Command is still running in the background]"), nil
+		}
+		cmdErr = timeoutCtx.Err()
+		wg.Wait()
+		return mcp.NewToolResultError(cmdErr.Error()), nil
+	}
 }
 
 // BuildEksctlArgs builds the arguments for the eksctl command from the request parameters
