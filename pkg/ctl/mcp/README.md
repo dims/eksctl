@@ -91,3 +91,10 @@ Amazon Q: [Guides the user through cluster creation using eksctl commands]
 ```
 
 The MCP server enables these interactions by providing Amazon Q with the ability to execute eksctl commands and interpret their results.
+
+## Quick test for MCP server
+To quickly test the MCP server, you can run the following command in your terminal:
+
+```bash
+echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | eksctl mcp | jq
+```

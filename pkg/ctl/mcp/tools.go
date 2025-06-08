@@ -21,20 +21,20 @@ import (
 
 // registerTools registers all eksctl commands as MCP tools
 // This is the entry point for tool registration that processes the entire command tree
-func registerTools(s *server.MCPServer, rootCmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) error {
-	return registerToolsRecursive(s, rootCmd, flagGrouping)
+func registerTools(s *server.MCPServer, rootCmd *cobra.Command) error {
+	return registerToolsRecursive(s, rootCmd)
 }
 
 // registerToolsRecursive recursively registers all commands as tools
 // It processes the current command and then recursively processes all subcommands
-func registerToolsRecursive(s *server.MCPServer, cmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) error {
-	if err := registerTool(s, cmd, flagGrouping); err != nil {
+func registerToolsRecursive(s *server.MCPServer, cmd *cobra.Command) error {
+	if err := registerTool(s, cmd); err != nil {
 		return err
 	}
 
 	// Process all subcommands recursively
 	for _, subCmd := range cmd.Commands() {
-		if err := registerToolsRecursive(s, subCmd, flagGrouping); err != nil {
+		if err := registerToolsRecursive(s, subCmd); err != nil {
 			return err
 		}
 	}
@@ -44,14 +44,14 @@ func registerToolsRecursive(s *server.MCPServer, cmd *cobra.Command, flagGroupin
 
 // registerTool registers a single command as an MCP tool
 // It builds the tool options and creates a handler for the command
-func registerTool(s *server.MCPServer, cmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) error {
+func registerTool(s *server.MCPServer, cmd *cobra.Command) error {
 	// Skip commands that shouldn't be exposed
 	if shouldSkipCommand(cmd) {
 		return nil
 	}
 
 	// Build tool name and options
-	toolName, toolOptions, err := buildToolOptions(cmd, flagGrouping)
+	toolName, toolOptions, err := buildToolOptions(cmd)
 	if err != nil {
 		return fmt.Errorf("error building tool options for %s: %w", cmd.Name(), err)
 	}
@@ -73,7 +73,7 @@ func shouldSkipCommand(cmd *cobra.Command) bool {
 }
 
 // buildToolOptions builds the MCP tool options from a cobra command
-func buildToolOptions(cmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) (string, []mcp.ToolOption, error) {
+func buildToolOptions(cmd *cobra.Command) (string, []mcp.ToolOption, error) {
 	// Build the command path (e.g., "create cluster")
 	var cmdPath []string
 	current := cmd
@@ -102,6 +102,8 @@ func buildToolOptions(cmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) (
 	// Get usage information
 	var buf bytes.Buffer
 	cmd.SetOut(&buf)
+	flagGrouping := cmdutils.NewGrouping()
+
 	if err := flagGrouping.Usage(cmd); err != nil {
 		return "", nil, fmt.Errorf("error printing usage: %w", err)
 	}
@@ -132,13 +134,13 @@ func buildToolOptions(cmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) (
 			// Handle string arrays as regular strings with comma-separated values
 			toolOptions = append(toolOptions, mcp.WithString(
 				name,
-				mcp.Description(usage + " (comma-separated values)"),
+				mcp.Description(usage+" (comma-separated values)"),
 			))
 		case "intSlice", "intArray":
 			// Handle int arrays as regular strings with comma-separated values
 			toolOptions = append(toolOptions, mcp.WithString(
 				name,
-				mcp.Description(usage + " (comma-separated values)"),
+				mcp.Description(usage+" (comma-separated values)"),
 			))
 		case "int", "int32", "int64":
 			// Use string for numbers as well for simplicity
