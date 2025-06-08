@@ -3,13 +3,10 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/weaveworks/eksctl/pkg/ctl/misc"
 	"os"
 
 	"github.com/kris-nova/logger"
 	"github.com/spf13/cobra"
-	"github.com/weaveworks/eksctl/pkg/ctl/deregister"
-	"github.com/weaveworks/eksctl/pkg/ctl/register"
 
 	"github.com/weaveworks/eksctl/pkg/actions/anywhere"
 	"github.com/weaveworks/eksctl/pkg/ctl/associate"
@@ -17,10 +14,13 @@ import (
 	"github.com/weaveworks/eksctl/pkg/ctl/completion"
 	"github.com/weaveworks/eksctl/pkg/ctl/create"
 	"github.com/weaveworks/eksctl/pkg/ctl/delete"
+	"github.com/weaveworks/eksctl/pkg/ctl/deregister"
 	"github.com/weaveworks/eksctl/pkg/ctl/disassociate"
 	"github.com/weaveworks/eksctl/pkg/ctl/drain"
 	"github.com/weaveworks/eksctl/pkg/ctl/enable"
 	"github.com/weaveworks/eksctl/pkg/ctl/get"
+	"github.com/weaveworks/eksctl/pkg/ctl/misc"
+	"github.com/weaveworks/eksctl/pkg/ctl/register"
 	"github.com/weaveworks/eksctl/pkg/ctl/scale"
 	"github.com/weaveworks/eksctl/pkg/ctl/set"
 	"github.com/weaveworks/eksctl/pkg/ctl/unset"
@@ -49,6 +49,7 @@ func addCommands(rootCmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) {
 	//Ensures "eksctl --help" presents eksctl anywhere as a command, but adds no subcommands since we invoke the binary.
 	rootCmd.AddCommand(cmdutils.NewVerbCmd("anywhere", "EKS anywhere", ""))
 
+	misc.Command(flagGrouping, rootCmd)
 }
 
 func main() {

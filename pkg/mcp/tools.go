@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -27,13 +28,13 @@ func registerToolsRecursive(s *server.MCPServer, cmd *cobra.Command, flagGroupin
 	if err := registerTool(s, cmd, flagGrouping); err != nil {
 		return err
 	}
-	
+
 	for _, subCmd := range cmd.Commands() {
 		if err := registerToolsRecursive(s, subCmd, flagGrouping); err != nil {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -49,7 +50,7 @@ func registerTool(s *server.MCPServer, cmd *cobra.Command, flagGrouping *cmdutil
 	if err != nil {
 		return fmt.Errorf("error building tool options for %s: %w", cmd.Name(), err)
 	}
-	
+
 	if toolName == "" {
 		return nil
 	}
@@ -57,7 +58,7 @@ func registerTool(s *server.MCPServer, cmd *cobra.Command, flagGrouping *cmdutil
 	// Create and register the tool
 	tool := mcp.NewTool(toolName, toolOptions...)
 	s.AddTool(tool, createToolHandler(cmd))
-	
+
 	return nil
 }
 
@@ -71,7 +72,7 @@ func buildToolOptions(cmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) (
 	// Build the command path (e.g., "create cluster")
 	var cmdPath []string
 	current := cmd
-	for current != nil && current.Name() != "eksctl" {
+	for current != nil && current.Name() != "eksctl" && current.Name() != "eksctl-mcp" {
 		cmdPath = append([]string{current.Name()}, cmdPath...)
 		current = current.Parent()
 	}
@@ -82,7 +83,7 @@ func buildToolOptions(cmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) (
 	}
 
 	commandPath := strings.Join(cmdPath, " ")
-	toolName := "eksctl_" + strings.Join(cmdPath, "_")
+	toolName := "eksctl-mcp_" + strings.Join(cmdPath, "_")
 
 	// Extract description from the command
 	description := cmd.Short
@@ -172,11 +173,11 @@ func createToolHandler(cmd *cobra.Command) server.ToolHandlerFunc {
 		// Add timeout to context
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
-		
+
 		// Build the command path
 		var cmdPath []string
 		current := cmd
-		for current != nil && current.Name() != "eksctl" {
+		for current != nil && current.Name() != "eksctl" && current.Name() != "eksctl-mcp" {
 			cmdPath = append([]string{current.Name()}, cmdPath...)
 			current = current.Parent()
 		}
@@ -210,45 +211,71 @@ func createToolHandler(cmd *cobra.Command) server.ToolHandlerFunc {
 			}
 		})
 
-		// Execute the command
-		cmd := exec.CommandContext(ctx, "eksctl", args...)
+		return ExecuteEksctlCommand(ctx, args)
+	}
+}
 
-		// Capture output
-		var stdout, stderr bytes.Buffer
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
+func ExecuteEksctlCommand(ctx context.Context, args []string) (*mcp.CallToolResult, error) {
+	// Create a context for output collection with a 45-second timeout
+	timeoutCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	defer cancel()
 
-		err := cmd.Run()
-		if err != nil {
-			// Combine stdout and stderr for complete context
-			var fullOutput string
-			stdoutStr := stdout.String()
-			stderrStr := stderr.String()
-			
-			if stdoutStr != "" && stderrStr != "" {
-				fullOutput = fmt.Sprintf("Command failed with error:\n\nSTDERR:\n%s\n\nSTDOUT:\n%s", stderrStr, stdoutStr)
-			} else if stderrStr != "" {
-				fullOutput = stderrStr
-			} else if stdoutStr != "" {
-				fullOutput = fmt.Sprintf("Command produced output but failed: %s\nError: %v", stdoutStr, err)
-			} else {
-				fullOutput = fmt.Sprintf("Command failed: %v", err)
-			}
-			
-			// Include exit code if available
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				fullOutput = fmt.Sprintf("%s\nExit code: %d", fullOutput, exitErr.ExitCode())
-			}
-			
-			// Check for timeout specifically
-			if ctx.Err() == context.DeadlineExceeded {
-				fullOutput = "Command timed out after 5 minutes"
-			}
-			
-			return mcp.NewToolResultError(fullOutput), nil
+	cmd := exec.Command("eksctl", args...)
+
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return mcp.NewToolResultError("Failed to create stdout pipe: " + err.Error()), nil
+	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return mcp.NewToolResultError("Failed to create stderr pipe: " + err.Error()), nil
+	}
+
+	if err := cmd.Start(); err != nil {
+		return mcp.NewToolResultError("Failed to start eksctl: " + err.Error()), nil
+	}
+
+	// Channels to collect output
+	stdoutCh := make(chan string, 1)
+	stderrCh := make(chan string, 1)
+
+	go func() {
+		var buf bytes.Buffer
+		io.Copy(&buf, stdoutPipe)
+		stdoutCh <- buf.String()
+	}()
+	go func() {
+		var buf bytes.Buffer
+		io.Copy(&buf, stderrPipe)
+		stderrCh <- buf.String()
+	}()
+
+	// Wait for either timeout or command completion
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case <-timeoutCtx.Done():
+		// Timeout: collect whatever output is available
+		stdout := ""
+		select {
+		case stdout = <-stdoutCh:
+		default:
 		}
-
-		return mcp.NewToolResultText(stdout.String()), nil
+		return mcp.NewToolResultText(stdout + "\n\n[Command is still running in the background]"), nil
+	case err := <-done:
+		// Command finished: collect output
+		stdout := <-stdoutCh
+		stderr := <-stderrCh
+		if err != nil {
+			if stderr == "" {
+				stderr = err.Error()
+			}
+			return mcp.NewToolResultError(stderr), nil
+		}
+		return mcp.NewToolResultText(stdout), nil
 	}
 }
 
@@ -266,7 +293,7 @@ func extractEnumValuesFromUsage(usage string) []string {
 		}
 		return values
 	}
-	
+
 	// Look for patterns like "[value1|value2|value3]"
 	pipePattern := regexp.MustCompile(`\[([^\]]+)\]`)
 	matches = pipePattern.FindStringSubmatch(usage)
@@ -277,6 +304,6 @@ func extractEnumValuesFromUsage(usage string) []string {
 		}
 		return values
 	}
-	
+
 	return []string{}
 }
