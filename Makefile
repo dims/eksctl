@@ -51,8 +51,6 @@ build: generate-always binary ## Generate, lint and build eksctl binary for curr
 binary: ## Build eksctl binary for current OS and place it at ./eksctl
 	CGO_ENABLED=0 go build -ldflags "-s -w -X $(version_pkg).gitCommit=$(git_commit) -X $(version_pkg).buildDate=$(build_date)" ./cmd/eksctl
 
-.PHONY: build-all
-build-all: build
 
 clean: ## Remove artefacts or generated files from previous build
 	rm -rf eksctl eksctl-integration-test
@@ -117,7 +115,7 @@ build-integration-test: $(all_generated_code) ## Ensure integration tests compil
 	@# Compile integration test binary without running any.
 	@# Required as build failure aren't listed when running go build below. See also: https://github.com/golang/go/issues/15513
 	go test -tags integration -run=^$$ ./integration/...
-	@# Build integration test binary:
+	@# Build integration test binary:
 	go build -tags integration -o ./eksctl-integration-test ./integration/main.go
 
 .PHONY: integration-test
@@ -196,7 +194,7 @@ update-deepcopy:
 	build/scripts/update-codegen.sh
 
 deep_copy_helper_input = $(shell $(call godeps_cmd,./pkg/apis/...) | sed 's|$(generated_code_deep_copy_helper)||' )
-$(generated_code_deep_copy_helper): $(deep_copy_helper_input) ## Generate Kubernetes API helpers
+$(generated_code_deep_copy_helper): $(deep_copy_helper_input) ## Generate Kubernetes API helpers
 	build/scripts/update-codegen.sh
 
 $(generated_code_aws_sdk_mocks): $(call godeps,pkg/eks/mocks/mocks.go) ## Generate AWS SDK mocks
