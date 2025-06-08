@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/weaveworks/eksctl/pkg/ctl/misc"
 	"os"
 
 	"github.com/kris-nova/logger"
@@ -48,8 +49,6 @@ func addCommands(rootCmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) {
 	//Ensures "eksctl --help" presents eksctl anywhere as a command, but adds no subcommands since we invoke the binary.
 	rootCmd.AddCommand(cmdutils.NewVerbCmd("anywhere", "EKS anywhere", ""))
 
-	cmdutils.AddResourceCmd(flagGrouping, rootCmd, infoCmd)
-	cmdutils.AddResourceCmd(flagGrouping, rootCmd, versionCmd)
 }
 
 func main() {

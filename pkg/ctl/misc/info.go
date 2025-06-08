@@ -1,20 +1,18 @@
-package main
+package misc
 
 import (
 	"fmt"
 
-	"github.com/spf13/pflag"
-
 	"github.com/spf13/cobra"
-
+	"github.com/spf13/pflag"
 	"github.com/weaveworks/eksctl/pkg/ctl/cmdutils"
-	"github.com/weaveworks/eksctl/pkg/version"
+	"github.com/weaveworks/eksctl/pkg/info"
 )
 
-func versionCmd(cmd *cmdutils.Cmd) {
+func infoCmd(cmd *cmdutils.Cmd) {
 	var output string
 
-	cmd.SetDescription("version", "Output the version of eksctl", "")
+	cmd.SetDescription("info", "Output the version of eksctl, kubectl and OS info", "")
 	cmd.FlagSetGroup.InFlagSet("General", func(fs *pflag.FlagSet) {
 		fs.StringVarP(&output, "output", "o", "", "specifies the output format (valid option: json)")
 	})
@@ -22,9 +20,12 @@ func versionCmd(cmd *cmdutils.Cmd) {
 	cmd.CobraCommand.RunE = func(_ *cobra.Command, args []string) error {
 		switch output {
 		case "":
-			fmt.Printf("%s\n", version.GetVersion())
+			version := info.GetInfo()
+			fmt.Printf("eksctl version: %s\n", version.EksctlVersion)
+			fmt.Printf("kubectl version: %s\n", version.KubectlVersion)
+			fmt.Printf("OS: %s\n", version.OS)
 		case "json":
-			fmt.Printf("%s\n", version.String())
+			fmt.Printf("%s\n", info.String())
 		default:
 			return fmt.Errorf("unknown output: %s", output)
 		}

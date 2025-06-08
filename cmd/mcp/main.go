@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/weaveworks/eksctl/pkg/ctl/misc"
+	"os"
+	"os/exec"
+	"strings"
+
 	"github.com/kris-nova/logger"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"io"
-	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/weaveworks/eksctl/pkg/ctl/associate"
 	"github.com/weaveworks/eksctl/pkg/ctl/cmdutils"
@@ -50,11 +51,7 @@ func addCommands(rootCmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) {
 	rootCmd.AddCommand(deregister.Command(flagGrouping))
 	rootCmd.AddCommand(utils.Command(flagGrouping))
 	rootCmd.AddCommand(completion.Command(rootCmd))
-	////Ensures "eksctl --help" presents eksctl anywhere as a command, but adds no subcommands since we invoke the binary.
-	//rootCmd.AddCommand(cmdutils.NewVerbCmd("anywhere", "EKS anywhere", ""))
-
-	//cmdutils.AddResourceCmd(flagGrouping, rootCmd, infoCmd)
-	//cmdutils.AddResourceCmd(flagGrouping, rootCmd, versionCmd)
+	misc.Command(flagGrouping, rootCmd)
 }
 
 func main() {
@@ -75,12 +72,7 @@ func main() {
 	// Create a new MCP server
 	s := server.NewMCPServer("eksctl", "0.1.0", server.WithInstructions("MCP server for eksctl"))
 
-	//// Register all tools
-	//tools.RegisterTools(s)
-
-	var buf bytes.Buffer
-	registerToolsRecursive(flagGrouping, rootCmd, s, &buf)
-	fmt.Println(buf.String())
+	registerMCPToolRecursive(flagGrouping, rootCmd, s/*, &buf*/)
 
 	// Create a stdio server
 	stdioServer := server.NewStdioServer(s)
@@ -92,27 +84,25 @@ func main() {
 	}
 }
 
-func registerToolsRecursive(flagGrouping *cmdutils.FlagGrouping, cmd *cobra.Command, s *server.MCPServer, newOut io.Writer) {
-	registerTools(flagGrouping, cmd, s, newOut)
+func registerMCPToolRecursive(flagGrouping *cmdutils.FlagGrouping, cmd *cobra.Command, s *server.MCPServer) {
+	registerMCPTool(flagGrouping, cmd, s)
 	for _, subCmd := range cmd.Commands() {
-		registerToolsRecursive(flagGrouping, subCmd, s, newOut)
+		registerMCPToolRecursive(flagGrouping, subCmd, s)
 	}
 }
 
-func registerTools(flagGrouping *cmdutils.FlagGrouping, cmd *cobra.Command, s *server.MCPServer, newOut io.Writer) {
-	cmd.SetOut(newOut)
+func registerMCPTool(flagGrouping *cmdutils.FlagGrouping, cmd *cobra.Command, s *server.MCPServer) {
+	// Skip commands that are not meant to be exposed as tools
+	if cmd.Hidden || cmd.Name() == "help" || cmd.Name() == "completion" {
+		return
+	}
+
+    var buf bytes.Buffer
+	cmd.SetOut(&buf)
 	err := flagGrouping.Usage(cmd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error printing usage: %v\n", err)
 		os.Exit(1)
-	}
-	registerMCPTool(cmd, s)
-}
-
-func registerMCPTool(cmd *cobra.Command, s *server.MCPServer) {
-	// Skip commands that are not meant to be exposed as tools
-	if cmd.Hidden || cmd.Name() == "help" || cmd.Name() == "completion" {
-		return
 	}
 
 	// Build the command path (e.g., "create cluster")
@@ -122,15 +112,15 @@ func registerMCPTool(cmd *cobra.Command, s *server.MCPServer) {
 		cmdPath = append([]string{current.Name()}, cmdPath...)
 		current = current.Parent()
 	}
-	
+
 	// Skip if no path (this is the root command)
 	if len(cmdPath) == 0 {
 		return
 	}
-	
+
 	commandPath := strings.Join(cmdPath, " ")
 	toolName := "eksctl_" + strings.Join(cmdPath, "_")
-	
+
 	// Extract description from the command
 	description := cmd.Short
 	if description == "" {
@@ -139,17 +129,17 @@ func registerMCPTool(cmd *cobra.Command, s *server.MCPServer) {
 	if description == "" {
 		description = "Run the eksctl " + commandPath + " command"
 	}
-	
+
 	// Create tool options starting with description
-	toolOptions := []mcp.ToolOption{mcp.WithDescription(description)}
-	
+	toolOptions := []mcp.ToolOption{mcp.WithDescription(description + "\n\n" + buf.String())}
+
 	// Add parameters based on command flags
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		// Skip deprecated flags
 		if flag.Deprecated != "" {
 			return
 		}
-		
+
 		// Determine parameter type and add appropriate option
 		switch flag.Value.Type() {
 		case "bool":
@@ -178,33 +168,33 @@ func registerMCPTool(cmd *cobra.Command, s *server.MCPServer) {
 		default:
 			// Default to string for all other types
 			stringOpts := []mcp.PropertyOption{mcp.Description(flag.Usage)}
-			
+
 			// Mark required if the flag is required
 			if flag.Annotations != nil {
 				if _, required := flag.Annotations["cobra_annotation_required"]; required {
 					stringOpts = append(stringOpts, mcp.Required())
 				}
 			}
-			
+
 			toolOptions = append(toolOptions, mcp.WithString(
 				flag.Name,
 				stringOpts...,
 			))
 		}
 	})
-	
+
 	// Create the tool with all options
 	tool := mcp.NewTool(toolName, toolOptions...)
-	
+
 	// Register the tool with the server
 	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Build arguments for the eksctl command
 		args := cmdPath
-		
+
 		// Add flag values from the request
 		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 			name := flag.Name
-			
+
 			// Handle different flag types
 			switch flag.Value.Type() {
 			case "bool":
@@ -226,15 +216,15 @@ func registerMCPTool(cmd *cobra.Command, s *server.MCPServer) {
 				}
 			}
 		})
-		
+
 		// Execute the command
 		cmd := exec.CommandContext(ctx, "eksctl", args...)
-		
+
 		// Capture output
 		var stdout, stderr bytes.Buffer
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
-		
+
 		err := cmd.Run()
 		if err != nil {
 			errorMsg := stderr.String()
@@ -243,7 +233,7 @@ func registerMCPTool(cmd *cobra.Command, s *server.MCPServer) {
 			}
 			return mcp.NewToolResultError(errorMsg), nil
 		}
-		
+
 		return mcp.NewToolResultText(stdout.String()), nil
 	})
 }
