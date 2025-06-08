@@ -51,15 +51,11 @@ build: generate-always binary ## Generate, lint and build eksctl binary for curr
 binary: ## Build eksctl binary for current OS and place it at ./eksctl
 	CGO_ENABLED=0 go build -ldflags "-s -w -X $(version_pkg).gitCommit=$(git_commit) -X $(version_pkg).buildDate=$(build_date)" ./cmd/eksctl
 
-.PHONY: mcp-binary
-mcp-binary: ## Build eksctl MCP binary for current OS and place it at ./eksctl-mcp
-	CGO_ENABLED=0 go build -ldflags "-s -w -X $(version_pkg).gitCommit=$(git_commit) -X $(version_pkg).buildDate=$(build_date)" -o ./eksctl-mcp ./cmd/mcp
-
 .PHONY: build-all
-build-all: build mcp-binary ## Build both eksctl and eksctl-mcp binaries
+build-all: build
 
 clean: ## Remove artefacts or generated files from previous build
-	rm -rf eksctl eksctl-mcp eksctl-integration-test
+	rm -rf eksctl eksctl-integration-test
 
 ##@ Testing & CI
 

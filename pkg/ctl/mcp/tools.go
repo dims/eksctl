@@ -72,7 +72,7 @@ func buildToolOptions(cmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) (
 	// Build the command path (e.g., "create cluster")
 	var cmdPath []string
 	current := cmd
-	for current != nil && current.Name() != "eksctl" && current.Name() != "eksctl-mcp" {
+	for current != nil && current.Name() != "eksctl" {
 		cmdPath = append([]string{current.Name()}, cmdPath...)
 		current = current.Parent()
 	}
@@ -83,7 +83,7 @@ func buildToolOptions(cmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) (
 	}
 
 	commandPath := strings.Join(cmdPath, " ")
-	toolName := "eksctl-mcp_" + strings.Join(cmdPath, "_")
+	toolName := "eksctl_" + strings.Join(cmdPath, "_")
 
 	// Extract description from the command
 	description := cmd.Short
@@ -177,7 +177,7 @@ func createToolHandler(cmd *cobra.Command) server.ToolHandlerFunc {
 		// Build the command path
 		var cmdPath []string
 		current := cmd
-		for current != nil && current.Name() != "eksctl" && current.Name() != "eksctl-mcp" {
+		for current != nil && current.Name() != "eksctl" {
 			cmdPath = append([]string{current.Name()}, cmdPath...)
 			current = current.Parent()
 		}

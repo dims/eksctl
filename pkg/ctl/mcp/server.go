@@ -46,7 +46,7 @@ func NewEksctlMCPServer(name, version string) (*server.MCPServer, error) {
 // createRootCommand creates the root eksctl command
 func createRootCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:   "eksctl-mcp [command]",
+		Use:   "eksctl [command]",
 		Short: "An MCP Server for Amazon EKS",
 		Run: func(c *cobra.Command, _ []string) {
 			if err := c.Help(); err != nil {

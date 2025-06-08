@@ -19,6 +19,7 @@ import (
 	"github.com/weaveworks/eksctl/pkg/ctl/drain"
 	"github.com/weaveworks/eksctl/pkg/ctl/enable"
 	"github.com/weaveworks/eksctl/pkg/ctl/get"
+	"github.com/weaveworks/eksctl/pkg/ctl/mcp"
 	"github.com/weaveworks/eksctl/pkg/ctl/misc"
 	"github.com/weaveworks/eksctl/pkg/ctl/register"
 	"github.com/weaveworks/eksctl/pkg/ctl/scale"
@@ -46,6 +47,7 @@ func addCommands(rootCmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) {
 	rootCmd.AddCommand(deregister.Command(flagGrouping))
 	rootCmd.AddCommand(utils.Command(flagGrouping))
 	rootCmd.AddCommand(completion.Command(rootCmd))
+	rootCmd.AddCommand(mcp.Command(nil))
 	//Ensures "eksctl --help" presents eksctl anywhere as a command, but adds no subcommands since we invoke the binary.
 	rootCmd.AddCommand(cmdutils.NewVerbCmd("anywhere", "EKS anywhere", ""))
 
@@ -115,6 +117,10 @@ func checkCommand(rootCmd *cobra.Command) {
 	for _, cmd := range rootCmd.Commands() {
 		// just a precaution as the verb command didn't have runE
 		if cmd.RunE != nil {
+			continue
+		}
+		// mcp command does not need a resource type
+		if cmd.Name() == "mcp" {
 			continue
 		}
 		cmd.RunE = func(c *cobra.Command, args []string) error {
