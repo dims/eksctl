@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/weaveworks/eksctl/pkg/ctl/mcp"
 	"os"
 
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/weaveworks/eksctl/pkg/mcp"
 )
 
 func main() {
