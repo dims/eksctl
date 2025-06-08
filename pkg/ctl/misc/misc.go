@@ -8,5 +8,6 @@ import (
 func Command(flagGrouping *cmdutils.FlagGrouping, rootCmd *cobra.Command) *cobra.Command {
 	cmdutils.AddResourceCmd(flagGrouping, rootCmd, infoCmd)
 	cmdutils.AddResourceCmd(flagGrouping, rootCmd, versionCmd)
+	return rootCmd
 }
 
