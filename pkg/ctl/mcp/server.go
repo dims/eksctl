@@ -1,3 +1,4 @@
+// Package mcp implements the Model Context Protocol (MCP) server functionality for eksctl
 package mcp
 
 import (
@@ -25,17 +26,20 @@ import (
 	"github.com/weaveworks/eksctl/pkg/ctl/utils"
 )
 
-// NewEksctlMCPServer creates and configures an MCP server for eksctl
-func NewEksctlMCPServer(name, version string) (*server.MCPServer, error) {
+// newEksctlMCPServer creates and configures an MCP server for eksctl
+// It sets up the command structure and registers all eksctl commands as MCP tools
+func newEksctlMCPServer(name, version string) (*server.MCPServer, error) {
+	// Create the root command structure
 	rootCmd := createRootCommand()
 	flagGrouping := cmdutils.NewGrouping()
 
+	// Add all eksctl subcommands to the root command
 	addCommands(rootCmd, flagGrouping)
 
-	// Create a new MCP server
+	// Create a new MCP server with the specified name and version
 	s := server.NewMCPServer(name, version, server.WithInstructions("MCP server for eksctl"))
 
-	// Register all tools
+	// Register all eksctl commands as MCP tools
 	if err := registerTools(s, rootCmd, flagGrouping); err != nil {
 		return nil, err
 	}
@@ -44,6 +48,7 @@ func NewEksctlMCPServer(name, version string) (*server.MCPServer, error) {
 }
 
 // createRootCommand creates the root eksctl command
+// This serves as the base for all other commands
 func createRootCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "eksctl [command]",
@@ -59,6 +64,7 @@ func createRootCommand() *cobra.Command {
 }
 
 // addCommands adds all eksctl subcommands to the root command
+// This includes all the major command groups like create, get, delete, etc.
 func addCommands(rootCmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) {
 	rootCmd.AddCommand(associate.Command(flagGrouping))
 	rootCmd.AddCommand(create.Command(flagGrouping))

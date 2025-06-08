@@ -1,3 +1,4 @@
+// Package mcp implements the Model Context Protocol (MCP) server functionality for eksctl
 package mcp
 
 import (
@@ -19,16 +20,19 @@ import (
 )
 
 // registerTools registers all eksctl commands as MCP tools
+// This is the entry point for tool registration that processes the entire command tree
 func registerTools(s *server.MCPServer, rootCmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) error {
 	return registerToolsRecursive(s, rootCmd, flagGrouping)
 }
 
 // registerToolsRecursive recursively registers all commands as tools
+// It processes the current command and then recursively processes all subcommands
 func registerToolsRecursive(s *server.MCPServer, cmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) error {
 	if err := registerTool(s, cmd, flagGrouping); err != nil {
 		return err
 	}
 
+	// Process all subcommands recursively
 	for _, subCmd := range cmd.Commands() {
 		if err := registerToolsRecursive(s, subCmd, flagGrouping); err != nil {
 			return err
@@ -39,6 +43,7 @@ func registerToolsRecursive(s *server.MCPServer, cmd *cobra.Command, flagGroupin
 }
 
 // registerTool registers a single command as an MCP tool
+// It builds the tool options and creates a handler for the command
 func registerTool(s *server.MCPServer, cmd *cobra.Command, flagGrouping *cmdutils.FlagGrouping) error {
 	// Skip commands that shouldn't be exposed
 	if shouldSkipCommand(cmd) {
@@ -211,11 +216,11 @@ func createToolHandler(cmd *cobra.Command) server.ToolHandlerFunc {
 			}
 		})
 
-		return ExecuteEksctlCommand(ctx, args)
+		return executeEksctlCommand(ctx, args)
 	}
 }
 
-func ExecuteEksctlCommand(ctx context.Context, args []string) (*mcp.CallToolResult, error) {
+func executeEksctlCommand(ctx context.Context, args []string) (*mcp.CallToolResult, error) {
 	// Create a context for output collection with a 45-second timeout
 	timeoutCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
